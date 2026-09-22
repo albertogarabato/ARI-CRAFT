@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -17,12 +19,13 @@
     <title>ARI CRAFT · El mundo de Ari</title>
 
     <link rel="stylesheet" href="./css/game.css">
+
 </head>
 
 <body>
 
 <!-- ======================================================
-     MUNDO 3D
+     JUEGO
      ====================================================== -->
 
 <div id="game"></div>
@@ -44,47 +47,54 @@
 
 
 <!-- ======================================================
-     AYUDA ORDENADOR
+     AYUDA DESKTOP
      ====================================================== -->
 
 <div id="desktopHelp">
+
     <b>ARI CRAFT</b><br>
+
     WASD — moverse<br>
     Ratón — mirar<br>
     Espacio — saltar<br>
     Click izquierdo — romper<br>
     Click derecho — construir<br>
     1–4 — cambiar bloque
+
 </div>
 
 
 <!-- ======================================================
-     INVENTARIO
+     BARRA DE BLOQUES
      ====================================================== -->
 
 <div id="hotbar">
 
-    <button class="slot active"
-            type="button"
-            aria-label="Bloque de césped">
+    <button
+        class="slot active"
+        type="button"
+        aria-label="Bloque de césped">
         🌱
     </button>
 
-    <button class="slot"
-            type="button"
-            aria-label="Bloque de ladrillo">
+    <button
+        class="slot"
+        type="button"
+        aria-label="Bloque de ladrillo">
         🧱
     </button>
 
-    <button class="slot"
-            type="button"
-            aria-label="Bloque de piedra">
+    <button
+        class="slot"
+        type="button"
+        aria-label="Bloque de piedra">
         🪨
     </button>
 
-    <button class="slot"
-            type="button"
-            aria-label="Bloque amarillo">
+    <button
+        class="slot"
+        type="button"
+        aria-label="Bloque amarillo">
         🟨
     </button>
 
@@ -97,25 +107,26 @@
 
 <div id="mobileControls">
 
-    <!-- Zona invisible derecha:
-         deslizar dedo = mover cámara -->
+    <!-- Zona derecha para mover la cámara -->
 
-    <div id="lookZone"
-         aria-label="Zona para mover la cámara">
+    <div
+        id="lookZone"
+        aria-label="Zona para mover la cámara">
     </div>
 
 
     <!-- Joystick -->
 
-    <div id="joystickZone"
-         aria-label="Joystick de movimiento">
+    <div
+        id="joystickZone"
+        aria-label="Joystick de movimiento">
 
         <div id="joystickStick"></div>
 
     </div>
 
 
-    <!-- Acciones -->
+    <!-- Botones de acción -->
 
     <div id="mobileActions">
 
@@ -155,16 +166,24 @@
 <div id="rotateMessage">
 
     <div>
-        <span class="rotateIcon">📱↻</span>
 
-        <h2>Gira el móvil</h2>
+        <span class="rotateIcon">
+            📱↻
+        </span>
+
+        <h2>
+            Gira el móvil
+        </h2>
 
         <p>
             ARI CRAFT se juega mejor<br>
             con el móvil en horizontal.
         </p>
 
-        <strong>⛏️ 🧱 ⚽</strong>
+        <strong>
+            ⛏️ 🧱 ⚽
+        </strong>
+
     </div>
 
 </div>
@@ -178,9 +197,13 @@
 
     <div id="startBox">
 
-        <h1>ARI CRAFT</h1>
+        <h1>
+            ARI CRAFT
+        </h1>
 
-        <h2>El mundo de Ari</h2>
+        <h2>
+            El mundo de Ari
+        </h2>
 
         <p>
             Construye. Explora. Juega.
@@ -194,11 +217,56 @@
             ⚽ Fútbol
         </p>
 
-        <button
-            id="startButton"
-            type="button">
-            ENTRAR EN MI MUNDO
-        </button>
+
+        <!-- ==============================================
+             AUTENTICACIÓN
+             ============================================== -->
+
+        <div id="authArea">
+
+            <!--
+                Se muestra cuando todavía
+                no existe una sesión de Google
+            -->
+
+            <button
+                id="googleLoginButton"
+                type="button">
+
+                🔐 ENTRAR CON GOOGLE
+
+            </button>
+
+
+            <!--
+                Se mostrará después de
+                identificar al jugador
+            -->
+
+            <div
+                id="playerInfo"
+                style="display:none;">
+
+                <p>
+
+                    👤 Jugando como
+
+                    <strong id="playerName">
+                    </strong>
+
+                </p>
+
+                <button
+                    id="startButton"
+                    type="button">
+
+                    ENTRAR EN MI MUNDO
+
+                </button>
+
+            </div>
+
+        </div>
 
     </div>
 
@@ -210,26 +278,31 @@
      ====================================================== -->
 
 <script type="importmap">
+
 {
     "imports": {
+
         "three":
         "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
 
         "three/addons/":
         "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+
     }
 }
+
 </script>
 
 
 <!-- ======================================================
-     ARI CRAFT
+     JUEGO
      ====================================================== -->
 
-<script type="module"
-        src="./js/game.js">
+<script
+    type="module"
+    src="./js/game.js">
 </script>
 
-
 </body>
+
 </html>
