@@ -1,308 +1,140 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
-
-<head>
-
-    <meta charset="UTF-8">
-
+  <head>
+    <meta charset="utf-8" />
     <meta
-        name="viewport"
-        content="width=device-width,
-                 initial-scale=1,
-                 maximum-scale=1,
-                 user-scalable=no,
-                 viewport-fit=cover"
-    >
-
-    <meta name="theme-color" content="#172326">
-
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#172f35" />
+    <meta
+      name="description"
+      content="El mundo de Ari. Explora, recoge y construye tu propio mundo de bloques."
+    />
     <title>ARI CRAFT · El mundo de Ari</title>
-
-    <link rel="stylesheet" href="./css/game.css">
-
-</head>
-
-<body>
-
-<!-- ======================================================
-     JUEGO
-     ====================================================== -->
-
-<div id="game"></div>
-
-
-<!-- ======================================================
-     HUD
-     ====================================================== -->
-
-<div id="logo">
-    ⛏ ARI CRAFT ⚽
-</div>
-
-<div id="crosshair">
-    +
-</div>
-
-<div id="gameMessage"></div>
-
-
-<!-- ======================================================
-     AYUDA DESKTOP
-     ====================================================== -->
-
-<div id="desktopHelp">
-
-    <b>ARI CRAFT</b><br>
-
-    WASD — moverse<br>
-    Ratón — mirar<br>
-    Espacio — saltar<br>
-    Click izquierdo — romper<br>
-    Click derecho — construir<br>
-    1–4 — cambiar bloque
-
-</div>
-
-
-<!-- ======================================================
-     BARRA DE BLOQUES
-     ====================================================== -->
-
-<div id="hotbar">
-
-    <button
-        class="slot active"
-        type="button"
-        aria-label="Bloque de césped">
-        🌱
-    </button>
-
-    <button
-        class="slot"
-        type="button"
-        aria-label="Bloque de ladrillo">
-        🧱
-    </button>
-
-    <button
-        class="slot"
-        type="button"
-        aria-label="Bloque de piedra">
-        🪨
-    </button>
-
-    <button
-        class="slot"
-        type="button"
-        aria-label="Bloque amarillo">
-        🟨
-    </button>
-
-</div>
-
-
-<!-- ======================================================
-     CONTROLES MÓVILES
-     ====================================================== -->
-
-<div id="mobileControls">
-
-    <!-- Zona derecha para mover la cámara -->
-
-    <div
-        id="lookZone"
-        aria-label="Zona para mover la cámara">
-    </div>
-
-
-    <!-- Joystick -->
-
-    <div
-        id="joystickZone"
-        aria-label="Joystick de movimiento">
-
-        <div id="joystickStick"></div>
-
-    </div>
-
-
-    <!-- Botones de acción -->
-
-    <div id="mobileActions">
-
-        <button
-            id="jumpButton"
-            class="actionButton"
-            type="button"
-            aria-label="Saltar">
-            ⬆️
-        </button>
-
-        <button
-            id="breakButton"
-            class="actionButton"
-            type="button"
-            aria-label="Romper bloque">
-            ⛏️
-        </button>
-
-        <button
-            id="placeButton"
-            class="actionButton"
-            type="button"
-            aria-label="Colocar bloque">
-            🧱
-        </button>
-
-    </div>
-
-</div>
-
-
-<!-- ======================================================
-     AVISO GIRAR MÓVIL
-     ====================================================== -->
-
-<div id="rotateMessage">
-
-    <div>
-
-        <span class="rotateIcon">
-            📱↻
-        </span>
-
-        <h2>
-            Gira el móvil
-        </h2>
-
-        <p>
-            ARI CRAFT se juega mejor<br>
-            con el móvil en horizontal.
-        </p>
-
-        <strong>
-            ⛏️ 🧱 ⚽
-        </strong>
-
-    </div>
-
-</div>
-
-
-<!-- ======================================================
-     PANTALLA INICIAL
-     ====================================================== -->
-
-<div id="start">
-
-    <div id="startBox">
-
-        <h1>
-            ARI CRAFT
-        </h1>
-
-        <h2>
-            El mundo de Ari
-        </h2>
-
-        <p>
-            Construye. Explora. Juega.
-        </p>
-
-        <p>
-            🧱 Construcción
-            &nbsp;&nbsp;
-            ⛏ Exploración
-            &nbsp;&nbsp;
-            ⚽ Fútbol
-        </p>
-
-
-        <!-- ==============================================
-             AUTENTICACIÓN
-             ============================================== -->
-
-        <div id="authArea">
-
-            <!--
-                Se muestra cuando todavía
-                no existe una sesión de Google
-            -->
-
-            <button
-                id="googleLoginButton"
-                type="button">
-
-                🔐 ENTRAR CON GOOGLE
-
-            </button>
-
-
-            <!--
-                Se mostrará después de
-                identificar al jugador
-            -->
-
-            <div
-                id="playerInfo"
-                style="display:none;">
-
-                <p>
-
-                    👤 Jugando como
-
-                    <strong id="playerName">
-                    </strong>
-
-                </p>
-
-                <button
-                    id="startButton"
-                    type="button">
-
-                    ENTRAR EN MI MUNDO
-
-                </button>
-
-            </div>
-
+    <link rel="stylesheet" href="./css/game.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main id="game" aria-label="Mundo de ARI CRAFT"></main>
+    <div id="hud" hidden>
+      <header class="hud-top">
+        <div class="brand">
+          ARI<span>CRAFT</span><small>EL MUNDO DE ARI</small>
         </div>
-
+        <div class="hud-status">
+          <span id="saveStatus" role="status">Preparando mundo…</span
+          ><button id="pauseButton" aria-label="Pausar juego">Ⅱ</button>
+        </div>
+      </header>
+      <div id="objective">
+        <span class="eyebrow">TU PRIMERA AVENTURA</span
+        ><span id="mission">Recoge un bloque y construye algo tuyo.</span>
+      </div>
+      <div id="crosshair" aria-hidden="true">+</div>
+      <div id="targetLabel"></div>
+      <progress
+        id="breakProgress"
+        max="1"
+        value="0"
+        aria-label="Progreso al romper bloque"
+        hidden
+      ></progress>
+      <div class="hotbar-wrap">
+        <div id="selectedLabel"></div>
+        <nav id="hotbar" aria-label="Barra de bloques"></nav>
+        <div class="keys-hint">
+          1–9 · Elegir bloque
+          <span>IZQUIERDO · Mantener para romper</span> DERECHO · Construir
+        </div>
+      </div>
     </div>
-
-</div>
-
-
-<!-- ======================================================
-     THREE.JS
-     ====================================================== -->
-
-<script type="importmap">
-
-{
-    "imports": {
-
-        "three":
-        "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
-
-        "three/addons/":
-        "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
-
-    }
-}
-
-</script>
-
-
-<!-- ======================================================
-     JUEGO
-     ====================================================== -->
-
-<script
-    type="module"
-    src="./js/game.js">
-</script>
-
-</body>
-
+    <section id="menu" aria-labelledby="menuTitle">
+      <div class="menu-card">
+        <div class="eyebrow">
+          <span class="status-dot"></span> UN PEQUEÑO MUNDO. INFINITAS IDEAS.
+        </div>
+        <h1 id="menuTitle">ARI<span>CRAFT</span><sup>0.4</sup></h1>
+        <p class="intro">El mundo de Ari.</p>
+        <p class="description">
+          Un árbol, tu primera casa, una nueva aventura.<br />Todo empieza con
+          un bloque.
+        </p>
+        <div class="features">
+          <span>01 / EXPLORA</span><span>02 / RECOGE</span
+          ><span>03 / CONSTRUYE</span>
+        </div>
+        <p id="greeting" hidden></p>
+        <button id="loginButton" class="primary">
+          Entrar con Google <span>↗</span>
+        </button>
+        <button id="playButton" class="primary" hidden>
+          Continuar mi mundo <span>→</span>
+        </button>
+        <button id="fallbackButton" class="secondary" hidden>
+          Jugar con cámara al arrastrar
+        </button>
+        <button id="demoButton" class="secondary">
+          Explorar una partida local
+        </button>
+        <div class="menu-actions">
+          <button id="saveButton" hidden>Guardar ahora</button
+          ><button id="logoutButton" hidden>Cambiar de cuenta</button
+          ><button id="exportButton" hidden>Descargar copia local</button
+          ><button id="reloadButton" hidden>
+            Cargar nube y conservar copia aparte
+          </button>
+        </div>
+        <p id="menuStatus" role="status">
+          Tu mundo con Google se guarda entre dispositivos.<br />La partida
+          local se guarda solo en este navegador.
+        </p>
+        <details id="bag" hidden>
+          <summary>Tu inventario</summary>
+          <div id="bagList" class="controls-grid"></div>
+        </details>
+        <details id="help">
+          <summary>Cómo jugar</summary>
+          <div class="controls-grid">
+            <span><kbd>W A S D</kbd> Moverse</span
+            ><span><kbd>Ratón</kbd> Mirar</span
+            ><span><kbd>Espacio</kbd> Saltar</span
+            ><span><kbd>Mayús</kbd> Correr</span
+            ><span><kbd>1–9 / rueda</kbd> Bloques</span
+            ><span><kbd>Esc / E</kbd> Pausa e inventario</span>
+          </div>
+          <p>
+            Mantén el botón izquierdo para recoger. Con el derecho colocas un
+            bloque de tu inventario. Acércate a menos de 6 bloques.
+          </p>
+        </details>
+        <p id="touchNotice" hidden>
+          Esta versión se juega con teclado y ratón. Los controles táctiles
+          llegarán en la siguiente fase.
+        </p>
+        <footer>
+          <span>HECHO PARA IMAGINAR</span><span>FÚTBOL · PRÓXIMAMENTE ↗</span>
+        </footer>
+      </div>
+      <div class="world-caption">
+        <span class="status-dot"></span> VALLE DE ARI
+        <small>SEMILLA 24092026 · MUNDO 01</small>
+      </div>
+    </section>
+    <div id="toast" role="status" hidden></div>
+    <noscript>Activa JavaScript para jugar a ARI CRAFT.</noscript>
+    <script type="module">
+      import("./js/game.js").catch((error) => {
+        console.error(error);
+        document.querySelector("#menuStatus").textContent =
+          "No se pudo iniciar el juego. Revisa la conexión y recarga la página.";
+      });
+    </script>
+  </body>
 </html>
