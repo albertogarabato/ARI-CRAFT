@@ -1,5 +1,5 @@
 import { World, SEED } from "./world.js";
-import { Inventory } from "./inventory.js";
+import { Inventory } from "./inventory.js?v=0.4.2";
 import { Player } from "./player.js";
 
 // Public web-app configuration preserved verbatim from the working prototype.

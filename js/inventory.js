@@ -1,7 +1,8 @@
 import { BLOCKS } from "./world.js";
 export const SLOTS = [1, 2, 3, 4, 5, 6, 7, 0, 0];
 export class Inventory {
-  constructor() {
+  constructor({ creative = true } = {}) {
+    this.creative = creative;
     this.counts = Array(8).fill(0);
     this.selected = 0;
   }
@@ -27,7 +28,11 @@ export class Inventory {
     return false;
   }
   snapshot() {
-    return { counts: [...this.counts], selected: this.selected };
+    return {
+      counts: [...this.counts],
+      selected: this.selected,
+      creative: this.creative,
+    };
   }
   restore(data) {
     if (
@@ -37,9 +42,12 @@ export class Inventory {
       !data.counts.every((n) => Number.isInteger(n) && n >= 0 && n <= 99999) ||
       !Number.isInteger(data.selected) ||
       data.selected < 0 ||
-      data.selected > 8
+      data.selected > 8 ||
+      (data.creative !== undefined && typeof data.creative !== "boolean")
     )
       throw new Error("Inventario guardado no válido");
+    // Saves from 0.4/0.4.1 become creative without changing their blocks or counts.
+    this.creative = data.creative ?? true;
     this.counts = [...data.counts];
     this.counts[0] = 0;
     this.selected = data.selected;
@@ -51,11 +59,14 @@ export class Inventory {
       button.type = "button";
       button.className = "slot";
       button.classList.toggle("active", index === this.selected);
-      button.classList.toggle("empty", !type || !this.counts[type]);
+      button.classList.toggle(
+        "empty",
+        !type || (!this.creative && !this.counts[type]),
+      );
       button.setAttribute("aria-pressed", String(index === this.selected));
       button.setAttribute(
         "aria-label",
-        `${index + 1}: ${type ? BLOCKS[type].name + ", " + this.counts[type] : "Vacío"}`,
+        `${index + 1}: ${type ? BLOCKS[type].name + ", " + (this.creative ? "ilimitados" : this.counts[type]) : "Vacío"}`,
       );
       const number = document.createElement("small");
       number.textContent = index + 1;
@@ -65,7 +76,7 @@ export class Inventory {
         cube.style.setProperty("--block", BLOCKS[type].color);
         button.append(cube);
         const count = document.createElement("b");
-        count.textContent = this.counts[type];
+        count.textContent = this.creative ? "∞" : this.counts[type];
         button.append(count);
       }
       button.onclick = () => onSelect(index);
@@ -79,16 +90,21 @@ export function mineBlock(world, inventory, hit) {
     !hit ||
     hit.type === 8 ||
     world.get(hit.x, hit.y, hit.z) !== hit.type ||
-    inventory.counts[hit.type] >= 99999
+    (!inventory.creative && inventory.counts[hit.type] >= 99999)
   )
     return false;
   if (!world.set(hit.x, hit.y, hit.z, 0)) return false;
-  inventory.add(hit.type);
+  if (!inventory.creative) inventory.add(hit.type);
   return true;
 }
 export function placeBlock(world, inventory, player, hit) {
   const type = inventory.type;
-  if (!hit || !type || !inventory.counts[type] || !hit.normal.some(Boolean))
+  if (
+    !hit ||
+    !type ||
+    (!inventory.creative && !inventory.counts[type]) ||
+    !hit.normal.some(Boolean)
+  )
     return false;
   const [x, y, z] = [
     hit.x + hit.normal[0],
@@ -101,6 +117,6 @@ export function placeBlock(world, inventory, player, hit) {
     !world.set(x, y, z, type)
   )
     return false;
-  inventory.take(type);
+  if (!inventory.creative) inventory.take(type);
   return true;
 }

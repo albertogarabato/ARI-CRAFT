@@ -12,7 +12,7 @@ import {
 } from "../js/firebase.js";
 const state = () => {
   const w = new World();
-  return encodeState(w, new Inventory(), new Player(w));
+  return encodeState(w, new Inventory({ creative: false }), new Player(w));
 };
 const storage = () => {
   const map = new Map();
@@ -54,7 +54,7 @@ test("deterministic terrain, layers, relief and trees", () => {
 });
 test("mining, collection, placement, conservation and reload", () => {
   const w = new World(),
-    i = new Inventory(),
+    i = new Inventory({ creative: false }),
     p = new Player(w),
     y = w.terrainHeight(1, 1);
   const hit = { x: 1, y, z: 1, type: 1, normal: [0, 1, 0] };
@@ -82,7 +82,7 @@ test("mining, collection, placement, conservation and reload", () => {
 });
 test("cannot place inside the player or occupied cells, or mine bedrock", () => {
   const w = new World(),
-    i = new Inventory(),
+    i = new Inventory({ creative: false }),
     p = new Player(w);
   i.add(1);
   assert.equal(
@@ -208,7 +208,7 @@ test("legacy structures move together without modifying legacy input", () => {
 });
 test("edit cap blocks collection without losing inventory; reverting frees capacity", () => {
   const w = new World(),
-    i = new Inventory();
+    i = new Inventory({ creative: false });
   let placed = 0;
   outer: for (let x = MIN; x <= MAX; x++)
     for (let z = MIN; z <= MAX; z++)

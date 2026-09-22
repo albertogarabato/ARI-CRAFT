@@ -1,4 +1,4 @@
-# ARI CRAFT · 0.4.1
+# ARI CRAFT · 0.4.2
 
 El mundo de Ari: un sandbox voxel para explorar, recoger y construir. Funciona como web estática en GitHub Pages, sin compilación. Texturas procedurales originales; no utiliza assets de Minecraft.
 
@@ -7,12 +7,12 @@ El mundo de Ari: un sandbox voxel para explorar, recoger y construir. Funciona c
 - **Entrar con Google** abre la partida de la cuenta y la sincroniza en Firestore.
 - **Explorar una partida local** permite probar sin iniciar sesión. Esa partida solo se conserva en este navegador; no se convierte automáticamente en una partida de Google.
 - WASD para caminar, ratón para mirar, Espacio para saltar, Mayús para correr.
-- Mantener clic izquierdo para romper y recoger. Clic derecho para colocar.
-- 1–9 o rueda del ratón para seleccionar. Solo se pueden colocar bloques disponibles.
+- Mantener clic izquierdo para romper. Clic derecho para colocar.
+- 1–9 o rueda del ratón para seleccionar. Modo creativo: todos los materiales tienen cantidades ilimitadas y colocarlos no consume recursos.
 - Esc o E para pausar. El menú muestra el inventario completo y permite guardar o descargar una copia.
 - Si el navegador no permite capturar el ratón, aparece **Jugar con cámara al arrastrar**: arrastrar con el botón derecho para mirar; clic derecho sin arrastrar para colocar.
 
-El inventario nuevo empieza vacío: recoge césped, tierra, piedra, madera u hojas. Ladrillo y ámbar permiten conservar construcciones del prototipo. Los dos últimos espacios quedan reservados.
+El modo creativo ofrece césped, tierra, piedra, madera, hojas, ladrillo y ámbar desde el principio, señalados con ∞. No hace falta recoger materiales. Las partidas antiguas conservan sus bloques y cantidades históricas y pasan a creativo al cargarse. Los dos últimos espacios quedan reservados.
 
 ## Desarrollo local
 
@@ -69,7 +69,7 @@ Espera a **Guardado en la nube** antes de cambiar de dispositivo. No se depende 
 
 Mundo finito de 64 × 64 columnas y 64 bloques de altura, relieve determinista, árboles, suelo irrompible en la capa 0 y límite de 10.000 modificaciones activas para mantener el documento acotado. La cámara puede quedar por encima del techo de construcción. No hay daño por caída ni multijugador simultáneo.
 
-En móvil aparecen controles táctiles: joystick izquierdo (hasta el borde para correr), cámara al arrastrar a la derecha y botones Saltar, Recoger y Colocar. Se recomienda horizontal; el aviso permite continuar en vertical. La interfaz respeta las áreas seguras y la altura visible del navegador. Pantalla completa se solicita cuando el navegador lo admite; en iPhone se explica cómo añadir el juego a la pantalla de inicio. El balón, porterías, marcador, crafting y retos pertenecen a las siguientes fases.
+En móvil aparecen controles táctiles: joystick izquierdo (hasta el borde para correr), cámara al arrastrar a la derecha y botones Saltar, Romper y Colocar. Se recomienda horizontal; el aviso permite continuar en vertical. La interfaz respeta las áreas seguras y la altura visible del navegador. Pantalla completa se solicita cuando el navegador lo admite; en iPhone se explica cómo añadir el juego a la pantalla de inicio. El balón, porterías, marcador, crafting y retos pertenecen a las siguientes fases.
 
 ## GitHub Pages
 
