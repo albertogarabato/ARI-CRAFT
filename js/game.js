@@ -2,14 +2,14 @@ import * as THREE from "three";
 import { bindTouchControls } from "./touch.js";
 import { World, BLOCKS, createWorldView } from "./world.js";
 import { Player } from "./player.js";
-import { Inventory, mineBlock, placeBlock } from "./inventory.js";
+import { Inventory, mineBlock, placeBlock } from "./inventory.js?v=0.4.2";
 import {
   connectFirebase,
   SaveSession,
   SaveConflict,
   encodeState,
   decodeState,
-} from "./firebase.js";
+} from "./firebase.js?v=0.4.2";
 
 const $ = (id) => document.getElementById(id);
 const scene = new THREE.Scene();
@@ -177,12 +177,12 @@ function renderInventory() {
   $("bagList").replaceChildren();
   BLOCKS.slice(1, 8).forEach((block, index) => {
     const row = document.createElement("span");
-    row.textContent = `${block.name} · ${inventory.counts[index + 1]}`;
+    row.textContent = `${block.name} · ${inventory.creative ? "∞" : inventory.counts[index + 1]}`;
     $("bagList").append(row);
   });
   const type = inventory.type;
   $("selectedLabel").textContent = type
-    ? `${BLOCKS[type].name} · ${inventory.counts[type]}`
+    ? `${BLOCKS[type].name} · ${inventory.creative ? "∞ · ilimitados" : inventory.counts[type]}`
     : "Espacio vacío";
 }
 function clearInput() {
@@ -572,8 +572,8 @@ function placeSelected() {
     $("mission").textContent = "¡Tu primera construcción! Sigue imaginando.";
   } else
     toast(
-      !inventory.type || !inventory.counts[inventory.type]
-        ? "Primero recoge bloques de este material."
+      !inventory.type
+        ? "Elige un material de la barra de arriba."
         : "No puedes construir aquí: deja espacio para moverte.",
     );
 }
@@ -652,8 +652,9 @@ function updateMining(dt) {
   }
   mineTime += dt;
   $("breakProgress").hidden = false;
-  $("breakProgress").value = mineTime / BLOCKS[hit.type].time;
-  if (mineTime >= BLOCKS[hit.type].time) {
+  $("breakProgress").value =
+    mineTime / (inventory.creative ? 0.2 : BLOCKS[hit.type].time);
+  if (mineTime >= (inventory.creative ? 0.2 : BLOCKS[hit.type].time)) {
     if (mineBlock(world, inventory, hit)) {
       renderInventory();
       changed();
@@ -661,9 +662,7 @@ function updateMining(dt) {
         ? "Toca tu bloque en la barra y pulsa Colocar."
         : "Selecciona tu bloque y usa el botón derecho para construir.";
     } else {
-      toast(
-        "No se pudo recoger: inventario o límite de cambios del mundo alcanzado.",
-      );
+      toast("No se pudo romper: límite de cambios del mundo alcanzado.");
       mining = false;
     }
     mineTime = 0;

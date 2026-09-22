@@ -14,10 +14,10 @@
     <meta name="theme-color" content="#172f35" />
     <meta
       name="description"
-      content="El mundo de Ari. Explora, recoge y construye tu propio mundo de bloques."
+      content="El mundo de Ari. Explora, imagina y construye tu propio mundo de bloques."
     />
     <title>ARI CRAFT · El mundo de Ari</title>
-    <link rel="stylesheet" href="./css/game.css?v=0.4.1" />
+    <link rel="stylesheet" href="./css/game.css?v=0.4.2" />
     <script type="importmap">
       {
         "imports": {
@@ -52,9 +52,9 @@
           <button id="touchJump" aria-label="Saltar"><b>↑</b>Saltar</button>
           <button
             id="touchMine"
-            aria-label="Mantén pulsado para recoger un bloque"
+            aria-label="Mantén pulsado para romper un bloque"
           >
-            <b>⛏</b>Recoger<small>MANTÉN</small>
+            <b>⛏</b>Romper<small>MANTÉN</small>
           </button>
           <button id="touchPlace" aria-label="Colocar el bloque seleccionado">
             <b>▣</b>Colocar<small>TOCA</small>
@@ -63,8 +63,10 @@
         <div id="touchTip">Mueve a la izquierda · mira a la derecha</div>
       </div>
       <div id="objective">
-        <span class="eyebrow">TU PRIMERA AVENTURA</span
-        ><span id="mission">Recoge un bloque y construye algo tuyo.</span>
+        <span class="eyebrow">CONSTRUYE SIN LÍMITES</span
+        ><span id="mission"
+          >Elige un material de arriba y pulsa Colocar. ¡Son ilimitados!</span
+        >
       </div>
       <div id="crosshair" aria-hidden="true">+</div>
       <div id="targetLabel"></div>
@@ -87,16 +89,16 @@
     <section id="menu" aria-labelledby="menuTitle">
       <div class="menu-card">
         <div class="eyebrow">
-          <span class="status-dot"></span> UN PEQUEÑO MUNDO. INFINITAS IDEAS.
+          <span class="status-dot"></span> MODO CREATIVO · BLOQUES ILIMITADOS
         </div>
-        <h1 id="menuTitle">ARI<span>CRAFT</span><sup>0.4.1</sup></h1>
+        <h1 id="menuTitle">ARI<span>CRAFT</span><sup>0.4.2</sup></h1>
         <p class="intro">El mundo de Ari.</p>
         <p class="description">
           Un árbol, tu primera casa, una nueva aventura.<br />Todo empieza con
           un bloque.
         </p>
         <div class="features">
-          <span>01 / EXPLORA</span><span>02 / RECOGE</span
+          <span>01 / EXPLORA</span><span>02 / IMAGINA</span
           ><span>03 / CONSTRUYE</span>
         </div>
         <p id="greeting" hidden></p>
@@ -128,7 +130,7 @@
           local se guarda solo en este navegador.
         </p>
         <details id="bag" hidden>
-          <summary>Tu inventario</summary>
+          <summary>Materiales ilimitados</summary>
           <div id="bagList" class="controls-grid"></div>
         </details>
         <details id="help">
@@ -142,8 +144,9 @@
             ><span><kbd>Esc / E</kbd> Pausa e inventario</span>
           </div>
           <p>
-            Mantén el botón izquierdo para recoger. Con el derecho colocas un
-            bloque de tu inventario. Acércate a menos de 6 bloques.
+            Elige un material de la barra: tienes bloques ilimitados. Con el
+            botón derecho construyes y manteniendo el izquierdo rompes. Acércate
+            a menos de 6 bloques.
           </p>
         </details>
         <div id="touchNotice" hidden>
@@ -152,8 +155,8 @@
           </p>
           <p>
             Izquierda: mueve el joystick. Derecha: arrastra para mirar. Apunta
-            con la cruz y mantén <b>Recoger</b>; toca <b>Colocar</b> para
-            construir.
+            con la cruz, elige un material arriba y toca <b>Colocar</b>. No se
+            gastan. Mantén <b>Romper</b> para quitar bloques.
           </p>
           <p id="fullscreenHelp" hidden>
             En iPhone: abre Compartir → Añadir a pantalla de inicio y abre ARI
@@ -193,7 +196,7 @@
     <div id="toast" role="status" hidden></div>
     <noscript>Activa JavaScript para jugar a ARI CRAFT.</noscript>
     <script type="module">
-      import("./js/game.js?v=0.4.1").catch((error) => {
+      import("./js/game.js?v=0.4.2").catch((error) => {
         console.error(error);
         document.querySelector("#menuStatus").textContent =
           "No se pudo iniciar el juego. Revisa la conexión y recarga la página.";
