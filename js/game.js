@@ -290,8 +290,11 @@ function localSession() {
   );
 }
 async function initializeAuth() {
+  $("loginButton").disabled = true;
+  $("loginButton").textContent = "Preparando Google…";
   try {
     backend = await connectFirebase();
+    $("loginButton").textContent = "Entrar con Google ↗";
     backend.watch((nextUser) => {
       user = nextUser;
       if (mode === "local") return;
@@ -304,22 +307,40 @@ async function initializeAuth() {
     });
   } catch (error) {
     console.error(error);
+    $("loginButton").textContent = "Reintentar conexión con Google";
     if (!mode)
       $("menuStatus").textContent =
-        "Google no está disponible ahora. Puedes reintentar o explorar una partida local.";
+        `No se pudo preparar Google (${error.code || error.message}). Comprueba la conexión y pulsa Reintentar.`;
+  } finally {
+    $("loginButton").disabled = false;
   }
 }
 $("loginButton").onclick = async () => {
+  // Finish SDK setup first. Opening the popup must remain in the next click's
+  // user activation, rather than following an asynchronous network request.
+  if (!backend) {
+    await initializeAuth();
+    if (backend)
+      $("menuStatus").textContent =
+        "Google está listo. Pulsa Entrar con Google.";
+    return;
+  }
   $("loginButton").disabled = true;
   try {
-    if (!backend) await initializeAuth();
-    if (!backend) throw new Error("Revisa la conexión");
     await backend.login();
   } catch (error) {
+    const messages = {
+      "auth/unauthorized-domain": `Firebase no tiene autorizado este dominio (${location.hostname}). Abre la versión de prueba en albertogarabato.github.io/ARI-CRAFT/prueba/.`,
+      "auth/popup-blocked":
+        "El navegador ha bloqueado la ventana de Google. Abre este enlace directamente en Chrome o Safari y permite las ventanas emergentes para este sitio.",
+      "auth/popup-closed-by-user":
+        "La ventana de Google se ha cerrado antes de terminar. Pulsa Entrar con Google para reintentar.",
+      "auth/network-request-failed":
+        "No se pudo conectar con Google. Comprueba la conexión y vuelve a intentarlo.",
+    };
     $("menuStatus").textContent =
-      error.code === "auth/popup-closed-by-user"
-        ? "Puedes volver a entrar cuando quieras."
-        : `No se pudo entrar con Google (${error.code || error.message}). Permite la ventana de acceso y vuelve a intentarlo.`;
+      messages[error.code] ||
+      `No se pudo entrar con Google (${error.code || error.message}). Copia este mensaje para revisar el problema.`;
   } finally {
     $("loginButton").disabled = false;
   }
