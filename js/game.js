@@ -1,2143 +1,622 @@
-/* =========================================================
-   ARI CRAFT · v0.3.1
-   Google Login + Cloud Save + Desktop + Mobile
-   ========================================================= */
-
-import * as THREE from 'three';
-
+import * as THREE from "three";
+import { World, BLOCKS, createWorldView } from "./world.js";
+import { Player } from "./player.js";
+import { Inventory, mineBlock, placeBlock } from "./inventory.js";
 import {
-    PointerLockControls
-} from 'three/addons/controls/PointerLockControls.js';
+  connectFirebase,
+  SaveSession,
+  SaveConflict,
+  encodeState,
+  decodeState,
+} from "./firebase.js";
 
-
-/* =========================================================
-   FIREBASE
-   ========================================================= */
-
-import {
-    initializeApp
-} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
-
-import {
-    getAuth,
-    GoogleAuthProvider,
-    signInWithPopup,
-    onAuthStateChanged,
-    setPersistence,
-    browserLocalPersistence
-} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
-
-import {
-    getFirestore,
-    doc,
-    getDoc,
-    setDoc,
-    serverTimestamp
-} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-
-
-/* =========================================================
-   CONFIGURACIÓN FIREBASE
-   ========================================================= */
-
-const firebaseConfig = {
-
-    apiKey:
-        "AIzaSyDFe32AgdruOh_sUn8_O5NGAF2NDItP5jU",
-
-    authDomain:
-        "ari-craft.firebaseapp.com",
-
-    projectId:
-        "ari-craft",
-
-    storageBucket:
-        "ari-craft.firebasestorage.app",
-
-    messagingSenderId:
-        "787816491408",
-
-    appId:
-        "1:787816491408:web:7872b943b9540df6992b15"
-};
-
-
-const firebaseApp =
-    initializeApp(firebaseConfig);
-
-const auth =
-    getAuth(firebaseApp);
-
-const db =
-    getFirestore(firebaseApp);
-
-const googleProvider =
-    new GoogleAuthProvider();
-
-googleProvider.setCustomParameters({
-    prompt: 'select_account'
+const $ = (id) => document.getElementById(id);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color("#b5d8dc");
+scene.fog = new THREE.Fog("#b5d8dc", 38, 95);
+const camera = new THREE.PerspectiveCamera(
+  70,
+  innerWidth / innerHeight,
+  0.05,
+  150,
+);
+const renderer = new THREE.WebGLRenderer({
+  antialias: true,
+  powerPreference: "high-performance",
 });
-
-
-/* =========================================================
-   DISPOSITIVO
-   ========================================================= */
-
-const isTouch =
-    matchMedia(
-        '(hover: none) and (pointer: coarse)'
-    ).matches ||
-    navigator.maxTouchPoints > 0;
-
-
-/* =========================================================
-   INTERFAZ
-   ========================================================= */
-
-const startScreen =
-    document.querySelector('#start');
-
-const googleLoginButton =
-    document.querySelector('#googleLoginButton');
-
-const playerInfo =
-    document.querySelector('#playerInfo');
-
-const playerName =
-    document.querySelector('#playerName');
-
-const startButton =
-    document.querySelector('#startButton');
-
-
-/* =========================================================
-   USUARIO
-   ========================================================= */
-
-let currentUser = null;
-let worldLoaded = false;
-
-
-/* =========================================================
-   LOGIN GOOGLE
-   ========================================================= */
-
-async function loginWithGoogle() {
-
-    googleLoginButton.disabled = true;
-
-    googleLoginButton.textContent =
-        'CONECTANDO...';
-
-    try {
-
-        const result =
-            await signInWithPopup(
-                auth,
-                googleProvider
-            );
-
-        currentUser =
-            result.user;
-
-    } catch (error) {
-
-        console.error(
-            'Error Google Login:',
-            error
-        );
-
-        googleLoginButton.disabled =
-            false;
-
-        googleLoginButton.textContent =
-            '🔐 ENTRAR CON GOOGLE';
-
-
-        if (
-            error.code ===
-            'auth/popup-blocked'
-        ) {
-
-            alert(
-                'El navegador ha bloqueado la ventana de Google.\n\nPermite las ventanas emergentes para ARI CRAFT y vuelve a intentarlo.'
-            );
-
-        } else if (
-            error.code !==
-            'auth/popup-closed-by-user'
-        ) {
-
-            alert(
-                'No se pudo iniciar sesión con Google.\n\n' +
-                (error.code || error.message)
-            );
-        }
-    }
-}
-
-
-googleLoginButton.addEventListener(
-    'click',
-    loginWithGoogle
-);
-
-
-/* =========================================================
-   MANTENER SESIÓN
-   ========================================================= */
-
-setPersistence(
-    auth,
-    browserLocalPersistence
-)
-.catch(error => {
-
-    console.error(
-        'Error manteniendo sesión:',
-        error
-    );
-});
-
-
-/* =========================================================
-   ESTADO DE AUTENTICACIÓN
-   ========================================================= */
-
-onAuthStateChanged(
-    auth,
-    async user => {
-
-        if (!user) {
-
-            currentUser =
-                null;
-
-            worldLoaded =
-                false;
-
-            googleLoginButton.style.display =
-                'block';
-
-            googleLoginButton.disabled =
-                false;
-
-            googleLoginButton.textContent =
-                '🔐 ENTRAR CON GOOGLE';
-
-            playerInfo.style.display =
-                'none';
-
-            return;
-        }
-
-
-        currentUser =
-            user;
-
-
-        const name =
-            user.displayName
-                ? user.displayName.split(' ')[0]
-                : 'Jugador';
-
-
-        playerName.textContent =
-            name;
-
-
-        googleLoginButton.style.display =
-            'none';
-
-        playerInfo.style.display =
-            'block';
-
-
-        if (!worldLoaded) {
-
-            await loadWorld();
-
-            worldLoaded =
-                true;
-        }
-    }
-);
-
-
-/* =========================================================
-   ESCENA
-   ========================================================= */
-
-const scene =
-    new THREE.Scene();
-
-scene.background =
-    new THREE.Color(
-        0x82c9ee
-    );
-
-scene.fog =
-    new THREE.Fog(
-        0x82c9ee,
-        35,
-        100
-    );
-
-
-const camera =
-    new THREE.PerspectiveCamera(
-        72,
-        innerWidth / innerHeight,
-        0.1,
-        160
-    );
-
-camera.position.set(
-    0,
-    2.2,
-    10
-);
-
-
-const renderer =
-    new THREE.WebGLRenderer({
-        antialias: true,
-        powerPreference:
-            'high-performance'
-    });
-
-
-renderer.setSize(
-    innerWidth,
-    innerHeight
-);
-
-renderer.setPixelRatio(
-    Math.min(
-        devicePixelRatio,
-        2
-    )
-);
-
-renderer.shadowMap.enabled =
-    true;
-
-
-document
-    .querySelector('#game')
-    .appendChild(
-        renderer.domElement
-    );
-
-
-/* =========================================================
-   ILUMINACIÓN
-   ========================================================= */
-
-scene.add(
-    new THREE.HemisphereLight(
-        0xdff4ff,
-        0x557744,
-        2.1
-    )
-);
-
-
-const sun =
-    new THREE.DirectionalLight(
-        0xffffff,
-        2.3
-    );
-
-sun.position.set(
-    25,
-    40,
-    15
-);
-
-sun.castShadow =
-    true;
-
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+$("game").append(renderer.domElement);
+scene.add(new THREE.HemisphereLight("#fff4d9", "#657b73", 2));
+const sun = new THREE.DirectionalLight("#fff0cd", 2.1);
+sun.position.set(-30, 55, 25);
 scene.add(sun);
-
-
-/* =========================================================
-   BLOQUES Y MATERIALES
-   ========================================================= */
-
-const blockGeometry =
-    new THREE.BoxGeometry(
-        1,
-        1,
-        1
-    );
-
-
-const materials = [
-
-    new THREE.MeshLambertMaterial({
-        color: 0x58a936
-    }),
-
-    new THREE.MeshLambertMaterial({
-        color: 0xb35c38
-    }),
-
-    new THREE.MeshLambertMaterial({
-        color: 0x777a7d
-    }),
-
-    new THREE.MeshLambertMaterial({
-        color: 0xe2b735
-    }),
-
-    new THREE.MeshLambertMaterial({
-        color: 0x8b572a
-    }),
-
-    new THREE.MeshLambertMaterial({
-        color: 0x3d8d38
-    })
-
-];
-
-
-const blocks = [];
-const playerBlocks = [];
-
-
-/* =========================================================
-   CREAR BLOQUE
-   ========================================================= */
-
-function createBlock(
-    x,
-    y,
-    z,
-    type = 0,
-    removable = true,
-    createdByPlayer = false
-) {
-
-    const block =
-        new THREE.Mesh(
-            blockGeometry,
-            materials[type]
-        );
-
-
-    block.position.set(
-        x,
-        y,
-        z
-    );
-
-
-    block.userData.type =
-        type;
-
-    block.userData.removable =
-        removable;
-
-    block.userData.createdByPlayer =
-        createdByPlayer;
-
-
-    block.castShadow =
-        true;
-
-    block.receiveShadow =
-        true;
-
-
-    scene.add(block);
-
-    blocks.push(block);
-
-
-    if (createdByPlayer) {
-
-        playerBlocks.push(
-            block
-        );
-    }
-
-
-    return block;
+let world = new World(),
+  inventory = new Inventory(),
+  player = new Player(world),
+  view = createWorldView(THREE, world, scene);
+view.update();
+camera.position.set(23, 25, 30);
+camera.lookAt(-3, 9, -6);
+const cloudMaterial = new THREE.MeshLambertMaterial({ color: "#fff8e9" });
+const cloudGeometry = new THREE.BoxGeometry(1, 1, 1);
+for (let i = 0; i < 9; i++) {
+  const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
+  cloud.position.set(
+    -42 + (i % 3) * 34,
+    30 + ((i * 7) % 9),
+    -40 + Math.floor(i / 3) * 34,
+  );
+  cloud.scale.set(12 + (i % 3) * 3, 1.2, 4);
+  scene.add(cloud);
 }
-
-
-/* =========================================================
-   TERRENO
-   ========================================================= */
-
-for (
-    let x = -20;
-    x <= 20;
-    x++
-) {
-
-    for (
-        let z = -20;
-        z <= 20;
-        z++
-    ) {
-
-        createBlock(
-            x,
-            0,
-            z,
-            0,
-            false,
-            false
-        );
-    }
+const outline = new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(1.006, 1.006, 1.006)),
+  new THREE.LineBasicMaterial({ color: "#fcf5d0" }),
+);
+outline.visible = false;
+scene.add(outline);
+let dragCamera = false,
+  rightDrag = null;
+let ready = false,
+  playing = false,
+  mode = null,
+  session = null,
+  backend = null,
+  user = null,
+  loadToken = 0;
+let mining = false,
+  mineKey = "",
+  mineTime = 0,
+  dirty = false,
+  saveTimer = null,
+  toastTimer = null,
+  accumulator = 0;
+const keys = new Set(),
+  direction = new THREE.Vector3();
+const hasTouchOnly = matchMedia("(hover: none) and (pointer: coarse)").matches;
+$("touchNotice").hidden = !hasTouchOnly;
+function status(message) {
+  $("saveStatus").textContent = message;
 }
-
-
-/* =========================================================
-   ÁRBOLES
-   ========================================================= */
-
-function createTree(x, z) {
-
-    createBlock(
-        x,1,z,
-        4,true,false
-    );
-
-    createBlock(
-        x,2,z,
-        4,true,false
-    );
-
-    createBlock(
-        x,3,z,
-        4,true,false
-    );
-
-
-    for (
-        let dx = -1;
-        dx <= 1;
-        dx++
-    ) {
-
-        for (
-            let dz = -1;
-            dz <= 1;
-            dz++
-        ) {
-
-            createBlock(
-                x + dx,
-                4,
-                z + dz,
-                5,
-                true,
-                false
-            );
-        }
-    }
-
-
-    createBlock(
-        x,
-        5,
-        z,
-        5,
-        true,
-        false
-    );
+function toast(message) {
+  $("toast").textContent = message;
+  $("toast").hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => ($("toast").hidden = true), 3200);
 }
-
-
-[
-    [-14,-13],
-    [13,-14],
-    [-16,5],
-    [15,8],
-    [-12,13],
-    [12,14]
-
-].forEach(
-    ([x,z]) =>
-        createTree(x,z)
-);
-
-
-/* =========================================================
-   FÚTBOL
-   ========================================================= */
-
-const white =
-    new THREE.MeshLambertMaterial({
-        color: 0xffffff
-    });
-
-
-function beam(
-    x,y,z,
-    sx,sy,sz
-) {
-
-    const mesh =
-        new THREE.Mesh(
-
-            new THREE.BoxGeometry(
-                sx,
-                sy,
-                sz
-            ),
-
-            white
-        );
-
-
-    mesh.position.set(
-        x,y,z
-    );
-
-    mesh.castShadow =
-        true;
-
-    scene.add(mesh);
-
-    return mesh;
+function snapshot() {
+  return encodeState(world, inventory, player);
 }
-
-
-/* Portería */
-
-beam(
-    -3,1.5,-13,
-    .22,3,.22
-);
-
-beam(
-    3,1.5,-13,
-    .22,3,.22
-);
-
-beam(
-    0,3,-13,
-    6.2,.22,.22
-);
-
-
-/* Línea */
-
-for (
-    let x = -4;
-    x <= 4;
-    x++
-) {
-
-    const line =
-        new THREE.Mesh(
-
-            new THREE.BoxGeometry(
-                .8,
-                .025,
-                .15
-            ),
-
-            white
-        );
-
-
-    line.position.set(
-        x,
-        .52,
-        -10
-    );
-
-    scene.add(line);
+function renderInventory() {
+  inventory.render($("hotbar"), (index) => {
+    inventory.select(index);
+    renderInventory();
+    changed();
+  });
+  $("bagList").replaceChildren();
+  BLOCKS.slice(1, 8).forEach((block, index) => {
+    const row = document.createElement("span");
+    row.textContent = `${block.name} · ${inventory.counts[index + 1]}`;
+    $("bagList").append(row);
+  });
+  const type = inventory.type;
+  $("selectedLabel").textContent = type
+    ? `${BLOCKS[type].name} · ${inventory.counts[type]}`
+    : "Espacio vacío";
 }
-
-
-/* =========================================================
-   BALÓN
-   ========================================================= */
-
-const ball =
-    new THREE.Mesh(
-
-        new THREE.SphereGeometry(
-            .42,
-            24,
-            24
-        ),
-
-        new THREE.MeshLambertMaterial({
-            color: 0xf5f5f5
-        })
-    );
-
-
-ball.position.set(
-    0,
-    .95,
-    -5
-);
-
-ball.castShadow =
-    true;
-
-scene.add(ball);
-
-
-let ballVelocity =
-    new THREE.Vector3();
-
-
-/* =========================================================
-   DESKTOP
-   ========================================================= */
-
-const desktopControls =
-    new PointerLockControls(
-        camera,
-        document.body
-    );
-
-
-const keys = {};
-
-
-document.addEventListener(
-    'keydown',
-    e => {
-
-        keys[e.code] =
-            true;
-
-
-        if (
-            e.code === 'Space'
-        ) {
-
-            jump();
-        }
-
-
-        const n =
-            Number(e.key);
-
-
-        if (
-            n >= 1 &&
-            n <= 4
-        ) {
-
-            selectBlock(
-                n - 1
-            );
-        }
-    }
-);
-
-
-document.addEventListener(
-    'keyup',
-    e => {
-
-        keys[e.code] =
-            false;
-    }
-);
-
-
-/* =========================================================
-   CÁMARA MÓVIL
-   ========================================================= */
-
-let yaw = 0;
-let pitch = 0;
-
-
-const lookZone =
-    document.querySelector(
-        '#lookZone'
-    );
-
-
-let lookPointer =
-    null;
-
-let lastLookX = 0;
-let lastLookY = 0;
-
-
-lookZone.addEventListener(
-    'pointerdown',
-    e => {
-
-        if (!isTouch) return;
-
-
-        lookPointer =
-            e.pointerId;
-
-        lastLookX =
-            e.clientX;
-
-        lastLookY =
-            e.clientY;
-
-
-        lookZone.setPointerCapture(
-            e.pointerId
-        );
-    }
-);
-
-
-lookZone.addEventListener(
-    'pointermove',
-    e => {
-
-        if (
-            e.pointerId !==
-            lookPointer
-        ) return;
-
-
-        const dx =
-            e.clientX -
-            lastLookX;
-
-        const dy =
-            e.clientY -
-            lastLookY;
-
-
-        lastLookX =
-            e.clientX;
-
-        lastLookY =
-            e.clientY;
-
-
-        yaw -=
-            dx * .004;
-
-        pitch -=
-            dy * .004;
-
-
-        pitch =
-            THREE.MathUtils.clamp(
-                pitch,
-                -Math.PI / 2.1,
-                Math.PI / 2.1
-            );
-
-
-        camera.rotation.order =
-            'YXZ';
-
-        camera.rotation.y =
-            yaw;
-
-        camera.rotation.x =
-            pitch;
-    }
-);
-
-
-function endLook(e) {
-
-    if (
-        e.pointerId ===
-        lookPointer
-    ) {
-
-        lookPointer =
-            null;
-    }
+function clearInput() {
+  rightDrag = null;
+  keys.clear();
+  mining = false;
+  mineKey = "";
+  mineTime = 0;
+  accumulator = 0;
+  $("breakProgress").hidden = true;
 }
-
-
-lookZone.addEventListener(
-    'pointerup',
-    endLook
-);
-
-lookZone.addEventListener(
-    'pointercancel',
-    endLook
-);
-
-
-/* =========================================================
-   JOYSTICK
-   ========================================================= */
-
-const joystick =
-    document.querySelector(
-        '#joystickZone'
-    );
-
-const stick =
-    document.querySelector(
-        '#joystickStick'
-    );
-
-
-let joystickPointer =
-    null;
-
-let joyX = 0;
-let joyY = 0;
-
-
-joystick.addEventListener(
-    'pointerdown',
-    e => {
-
-        joystickPointer =
-            e.pointerId;
-
-
-        joystick.setPointerCapture(
-            e.pointerId
-        );
-
-
-        updateJoystick(e);
-    }
-);
-
-
-joystick.addEventListener(
-    'pointermove',
-    e => {
-
-        if (
-            e.pointerId !==
-            joystickPointer
-        ) return;
-
-
-        updateJoystick(e);
-    }
-);
-
-
-function updateJoystick(e) {
-
-    const rect =
-        joystick
-            .getBoundingClientRect();
-
-
-    const cx =
-        rect.left +
-        rect.width / 2;
-
-    const cy =
-        rect.top +
-        rect.height / 2;
-
-
-    let dx =
-        e.clientX - cx;
-
-    let dy =
-        e.clientY - cy;
-
-
-    const radius =
-        rect.width * .32;
-
-
-    const distance =
-        Math.hypot(
-            dx,
-            dy
-        );
-
-
-    if (
-        distance >
-        radius
-    ) {
-
-        dx =
-            dx /
-            distance *
-            radius;
-
-        dy =
-            dy /
-            distance *
-            radius;
-    }
-
-
-    joyX =
-        dx / radius;
-
-    joyY =
-        dy / radius;
-
-
-    stick.style.transform =
-        `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+function checkpoint() {
+  if (!ready || !session || !dirty || session.blocked) return;
+  session.update(snapshot());
+  dirty = false;
+  status(
+    session.storageError
+      ? "Copia local no disponible · guarda antes de salir"
+      : "Cambios pendientes de guardar",
+  );
 }
-
-
-function resetJoystick() {
-
-    joystickPointer =
-        null;
-
-    joyX = 0;
-    joyY = 0;
-
-
-    stick.style.transform =
-        'translate(-50%, -50%)';
+function changed() {
+  dirty = true;
+  checkpoint();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(save, 1000);
 }
-
-
-joystick.addEventListener(
-    'pointerup',
-    resetJoystick
-);
-
-joystick.addEventListener(
-    'pointercancel',
-    resetJoystick
-);
-
-
-/* =========================================================
-   SALTO
-   ========================================================= */
-
-let verticalVelocity = 0;
-let grounded = true;
-
-
-function jump() {
-
-    if (!grounded) return;
-
-
-    verticalVelocity =
-        7;
-
-    grounded =
-        false;
-}
-
-
-document
-    .querySelector('#jumpButton')
-    .addEventListener(
-        'pointerdown',
-        e => {
-
-            e.preventDefault();
-
-            jump();
-        }
+async function save() {
+  if (!ready || !session) return;
+  checkpoint();
+  const active = session;
+  if (!active.pending || active.blocked) return;
+  status(
+    mode === "local" ? "Guardando en este navegador…" : "Guardando en la nube…",
+  );
+  try {
+    await active.flush();
+    if (active !== session) return;
+    status(
+      active.pending
+        ? "Cambios pendientes"
+        : mode === "local"
+          ? "Guardado en este navegador"
+          : "Guardado en la nube",
     );
-
-
-/* =========================================================
-   HOTBAR
-   ========================================================= */
-
-let selectedType = 0;
-
-
-function selectBlock(index) {
-
-    selectedType =
-        index;
-
-
-    document
-        .querySelectorAll('.slot')
-        .forEach(
-            (slot,i) => {
-
-                slot.classList.toggle(
-                    'active',
-                    i === selectedType
-                );
-            }
-        );
-}
-
-
-document
-    .querySelectorAll('.slot')
-    .forEach(
-        (slot,index) => {
-
-            slot.addEventListener(
-                'pointerdown',
-                e => {
-
-                    e.preventDefault();
-                    e.stopPropagation();
-
-                    selectBlock(
-                        index
-                    );
-                }
-            );
-        }
+  } catch (error) {
+    if (active !== session) return;
+    console.error(error);
+    status(
+      error.code === "save/conflict"
+        ? "Partida abierta en otro dispositivo"
+        : active.storageError
+          ? "Sin guardar · descarga tu copia"
+          : mode === "local"
+            ? "No se pudo guardar en este navegador"
+            : "Sin guardar en la nube · copia local",
     );
-
-
-/* =========================================================
-   RAYCAST
-   ========================================================= */
-
-const raycaster =
-    new THREE.Raycaster();
-
-raycaster.far =
-    6;
-
-
-function getTarget() {
-
-    raycaster.setFromCamera(
-        new THREE.Vector2(
-            0,
-            0
-        ),
-        camera
-    );
-
-
-    const hits =
-        raycaster.intersectObjects(
-            blocks,
-            false
-        );
-
-
-    return hits.length
-        ? hits[0]
-        : null;
+    if (error.code === "save/conflict") {
+      pause();
+      ready = false;
+      $("playButton").hidden = true;
+      $("reloadButton").hidden = false;
+    }
+    $("menuStatus").textContent =
+      error.code === "save/conflict"
+        ? error.message
+        : active.storageError || mode === "local"
+          ? "El navegador no ha podido guardar. Descarga una copia antes de salir y libera espacio para reintentar."
+          : "No se pudo guardar. Tu copia local se reintentará al recuperar la conexión. Usa «Guardar ahora» antes de cambiar de dispositivo.";
+    $("exportButton").hidden = false;
+  }
 }
-
-
-/* =========================================================
-   ROMPER
-   ========================================================= */
-
-function breakBlock() {
-
-    const hit =
-        getTarget();
-
-
-    if (!hit) return;
-
-
-    if (
-        !hit.object
-            .userData
-            .removable
-    ) {
-
-        showMessage(
-            'Ese bloque forma parte del terreno'
-        );
-
-        return;
-    }
-
-
-    if (
-        hit.object
-            .userData
-            .createdByPlayer
-    ) {
-
-        const playerIndex =
-            playerBlocks.indexOf(
-                hit.object
-            );
-
-
-        if (
-            playerIndex !== -1
-        ) {
-
-            playerBlocks.splice(
-                playerIndex,
-                1
-            );
-        }
-    }
-
-
-    scene.remove(
-        hit.object
-    );
-
-
-    const index =
-        blocks.indexOf(
-            hit.object
-        );
-
-
-    if (
-        index !== -1
-    ) {
-
-        blocks.splice(
-            index,
-            1
-        );
-    }
-
-
-    scheduleSave();
+function pause() {
+  playing = false;
+  clearInput();
+  outline.visible = false;
+  $("targetLabel").textContent = "";
+  if (document.pointerLockElement) document.exitPointerLock();
+  $("menu").hidden = false;
+  document.body.classList.add("paused");
+  $("menuTitle").setAttribute("aria-label", "ARI CRAFT · Juego en pausa");
+  if (ready) {
+    $("playButton").textContent = "Continuar mi mundo →";
+    $("playButton").focus();
+  }
+  checkpoint();
+  void save();
 }
-
-
-/* =========================================================
-   CONSTRUIR
-   ========================================================= */
-
-function placeBlock() {
-
-    const hit =
-        getTarget();
-
-
-    if (!hit) return;
-
-
-    const position =
-        hit.object
-            .position
-            .clone()
-            .add(
-                hit.face.normal
-            );
-
-
-    position.set(
-        Math.round(position.x),
-        Math.round(position.y),
-        Math.round(position.z)
+async function play() {
+  if (!ready) return;
+  try {
+    dragCamera = false;
+    await renderer.domElement.requestPointerLock();
+  } catch {
+    $("fallbackButton").hidden = false;
+    toast(
+      "Puedes jugar con cámara al arrastrar si el navegador no permite capturar el ratón.",
     );
-
-
-    if (
-        position.distanceTo(
-            camera.position
-        ) < 1.5
-    ) {
-
-        return;
-    }
-
-
-    const exists =
-        blocks.some(
-            block =>
-
-                block.position.x ===
-                    position.x &&
-
-                block.position.y ===
-                    position.y &&
-
-                block.position.z ===
-                    position.z
-        );
-
-
-    if (exists) {
-
-        showMessage(
-            'Ya hay un bloque ahí'
-        );
-
-        return;
-    }
-
-
-    createBlock(
-        position.x,
-        position.y,
-        position.z,
-        selectedType,
-        true,
-        true
-    );
-
-
-    scheduleSave();
+  }
 }
-
-
-/* =========================================================
-   RATÓN
-   ========================================================= */
-
-renderer.domElement.addEventListener(
-    'mousedown',
-    e => {
-
-        if (isTouch) return;
-
-        if (
-            !desktopControls
-                .isLocked
-        ) return;
-
-
-        if (
-            e.button === 0
-        ) {
-
-            breakBlock();
-        }
-
-
-        if (
-            e.button === 2
-        ) {
-
-            placeBlock();
-        }
-    }
-);
-
-
-renderer.domElement.addEventListener(
-    'contextmenu',
-    e =>
-        e.preventDefault()
-);
-
-
-/* =========================================================
-   BOTONES MÓVILES
-   ========================================================= */
-
-document
-    .querySelector('#breakButton')
-    .addEventListener(
-        'pointerdown',
-        e => {
-
-            e.preventDefault();
-
-            breakBlock();
-        }
-    );
-
-
-document
-    .querySelector('#placeButton')
-    .addEventListener(
-        'pointerdown',
-        e => {
-
-            e.preventDefault();
-
-            placeBlock();
-        }
-    );
-
-
-/* =========================================================
-   MENSAJES
-   ========================================================= */
-
-let messageTimer;
-
-
-function showMessage(text) {
-
-    const element =
-        document.querySelector(
-            '#gameMessage'
-        );
-
-
-    element.textContent =
-        text;
-
-
-    element.classList.add(
-        'visible'
-    );
-
-
-    clearTimeout(
-        messageTimer
-    );
-
-
-    messageTimer =
-        setTimeout(
-            () => {
-
-                element
-                    .classList
-                    .remove(
-                        'visible'
-                    );
-
-            },
-            1600
-        );
+function install(state) {
+  const next = decodeState(state);
+  view.dispose();
+  ({ world, inventory, player } = next);
+  view = createWorldView(THREE, world, scene);
+  view.update();
+  player.syncCamera(camera);
+  renderInventory();
+  ready = true;
+  dirty = false;
+  document.body.classList.add("paused");
+  $("bag").hidden = false;
+  $("logoutButton").textContent =
+    mode === "local" ? "Volver al inicio" : "Cambiar de cuenta";
+  $("hud").hidden = false;
+  $("playButton").hidden = false;
+  $("loginButton").hidden = true;
+  $("demoButton").hidden = true;
+  $("saveButton").hidden = false;
+  $("logoutButton").hidden = false;
+  $("greeting").hidden = false;
+  $("exportButton").hidden = false;
+  $("reloadButton").hidden = true;
+  $("greeting").textContent =
+    mode === "local"
+      ? "Tu rincón para experimentar."
+      : `Hola, ${user?.displayName?.split(" ")[0] || "Ari"}. Tu mundo te espera.`;
+  $("menuStatus").textContent =
+    mode === "local"
+      ? "Partida local · Se conserva en este navegador. No se sincroniza con Google."
+      : "Tu mundo se guarda automáticamente. Espera a «Guardado en la nube» antes de continuar en otro dispositivo.";
+  status(mode === "local" ? "Partida local" : "Mundo cargado");
+  // Persist migration/new state only after a successful remote read and validation.
+  if (!session.revision || session.pending) changed();
 }
-
-
-/* =========================================================
-   GUARDAR
-   ========================================================= */
-
-let saveTimer = null;
-
-
-function scheduleSave() {
-
-    if (!currentUser) return;
-
-
-    clearTimeout(
-        saveTimer
-    );
-
-
-    saveTimer =
-        setTimeout(
-            saveWorld,
-            700
-        );
+async function loadSession(nextSession, nextMode) {
+  const token = ++loadToken;
+  ready = false;
+  pause();
+  session = nextSession;
+  mode = nextMode;
+  $("playButton").hidden = true;
+  $("demoButton").hidden = true;
+  $("menuStatus").textContent = "Preparando tu mundo…";
+  try {
+    const state = await session.load();
+    if (token !== loadToken) return;
+    install(state);
+  } catch (error) {
+    if (token !== loadToken) return;
+    console.error(error);
+    $("menuStatus").textContent =
+      `No se ha abierto la partida: ${error.message} Tu mundo no se ha sobrescrito.`;
+    $("reloadButton").hidden = false;
+    $("exportButton").hidden = false;
+    $("logoutButton").hidden = false;
+    status("Partida sin cargar");
+  }
 }
-
-
-async function saveWorld() {
-
-    if (!currentUser) return;
-
-
-    const savedBlocks =
-        playerBlocks.map(
-            block => ({
-
-                x:
-                    block.position.x,
-
-                y:
-                    block.position.y,
-
-                z:
-                    block.position.z,
-
-                type:
-                    block.userData.type
-            })
+function localSession() {
+  return new SaveSession(
+    {
+      async read() {
+        const raw = localStorage.getItem("ari-craft:04:demo-world");
+        return raw ? JSON.parse(raw) : null;
+      },
+      async commit(entry) {
+        const raw = localStorage.getItem("ari-craft:04:demo-world"),
+          old = raw ? JSON.parse(raw).sandbox04 : null;
+        if (old?.commit === entry.commit) return old.revision;
+        if ((old?.revision || 0) !== entry.base) throw new SaveConflict();
+        const revision = entry.base + 1;
+        localStorage.setItem(
+          "ari-craft:04:demo-world",
+          JSON.stringify({
+            sandbox04: { revision, commit: entry.commit, state: entry.state },
+          }),
         );
-
-
-    const gameData = {
-
-        version: 1,
-
-        player: {
-
-            x:
-                camera.position.x,
-
-            y:
-                camera.position.y,
-
-            z:
-                camera.position.z
-        },
-
-        blocks:
-            savedBlocks,
-
-        updatedAt:
-            serverTimestamp()
-    };
-
-
-    try {
-
-        await setDoc(
-
-            doc(
-                db,
-                'players',
-                currentUser.uid
-            ),
-
-            gameData,
-
-            {
-                merge: true
-            }
-        );
-
-
-        console.log(
-            'ARI CRAFT guardado ☁️'
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            'Error guardando:',
-            error
-        );
-
-
-        showMessage(
-            '⚠️ No se pudo guardar'
-        );
-    }
-}
-
-
-/* =========================================================
-   CARGAR
-   ========================================================= */
-
-async function loadWorld() {
-
-    if (!currentUser) return;
-
-
-    try {
-
-        const playerDocument =
-            await getDoc(
-
-                doc(
-                    db,
-                    'players',
-                    currentUser.uid
-                )
-            );
-
-
-        if (
-            !playerDocument.exists()
-        ) {
-
-            showMessage(
-                '🌍 ¡Bienvenido a tu nuevo mundo!'
-            );
-
-
-            await saveWorld();
-
-            return;
-        }
-
-
-        const data =
-            playerDocument.data();
-
-
-        /* POSICIÓN */
-
-        if (
-            data.player &&
-            Number.isFinite(
-                data.player.x
-            ) &&
-            Number.isFinite(
-                data.player.y
-            ) &&
-            Number.isFinite(
-                data.player.z
-            )
-        ) {
-
-            camera.position.set(
-
-                data.player.x,
-
-                Math.max(
-                    2.2,
-                    data.player.y
-                ),
-
-                data.player.z
-            );
-        }
-
-
-        /* BLOQUES */
-
-        if (
-            Array.isArray(
-                data.blocks
-            )
-        ) {
-
-            data.blocks.forEach(
-                savedBlock => {
-
-                    const type =
-                        Number(
-                            savedBlock.type
-                        );
-
-
-                    if (
-                        !Number.isFinite(
-                            savedBlock.x
-                        ) ||
-                        !Number.isFinite(
-                            savedBlock.y
-                        ) ||
-                        !Number.isFinite(
-                            savedBlock.z
-                        ) ||
-                        !Number.isInteger(
-                            type
-                        ) ||
-                        type < 0 ||
-                        type > 3
-                    ) {
-
-                        return;
-                    }
-
-
-                    const exists =
-                        blocks.some(
-                            block =>
-
-                                block.position.x ===
-                                    savedBlock.x &&
-
-                                block.position.y ===
-                                    savedBlock.y &&
-
-                                block.position.z ===
-                                    savedBlock.z
-                        );
-
-
-                    if (!exists) {
-
-                        createBlock(
-
-                            savedBlock.x,
-
-                            savedBlock.y,
-
-                            savedBlock.z,
-
-                            type,
-
-                            true,
-
-                            true
-                        );
-                    }
-                }
-            );
-        }
-
-
-        showMessage(
-            '☁️ Mundo cargado'
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            'Error cargando:',
-            error
-        );
-
-
-        showMessage(
-            '⚠️ No se pudo cargar el mundo'
-        );
-    }
-}
-
-
-/* =========================================================
-   ENTRAR AL JUEGO
-   ========================================================= */
-
-startButton.addEventListener(
-    'click',
-    () => {
-
-        if (!currentUser) {
-
-            showMessage(
-                'Primero entra con Google'
-            );
-
-            return;
-        }
-
-
-        startScreen.style.display =
-            'none';
-
-
-        if (!isTouch) {
-
-            desktopControls.lock();
-        }
-
-
-        scheduleSave();
-    }
-);
-
-
-desktopControls.addEventListener(
-    'unlock',
-    () => {
-
-        if (!isTouch) {
-
-            startScreen.style.display =
-                'grid';
-
-            scheduleSave();
-        }
-    }
-);
-
-
-/* =========================================================
-   MOVIMIENTO
-   ========================================================= */
-
-function movePlayer(delta) {
-
-    let forward = 0;
-    let right = 0;
-
-
-    if (isTouch) {
-
-        forward =
-            -joyY;
-
-        right =
-            joyX;
-
-    } else {
-
-        if (
-            keys['KeyW']
-        ) {
-
-            forward += 1;
-        }
-
-        if (
-            keys['KeyS']
-        ) {
-
-            forward -= 1;
-        }
-
-        if (
-            keys['KeyD']
-        ) {
-
-            right += 1;
-        }
-
-        if (
-            keys['KeyA']
-        ) {
-
-            right -= 1;
-        }
-    }
-
-
-    const length =
-        Math.hypot(
-            forward,
-            right
-        );
-
-
-    if (
-        length > 1
-    ) {
-
-        forward /=
-            length;
-
-        right /=
-            length;
-    }
-
-
-    const speed =
-        6 * delta;
-
-
-    if (isTouch) {
-
-        const direction =
-            new THREE.Vector3();
-
-
-        camera.getWorldDirection(
-            direction
-        );
-
-
-        direction.y =
-            0;
-
-        direction.normalize();
-
-
-        const side =
-            new THREE.Vector3(
-                direction.z,
-                0,
-                -direction.x
-            );
-
-
-        camera.position
-            .addScaledVector(
-                direction,
-                forward * speed
-            );
-
-
-        camera.position
-            .addScaledVector(
-                side,
-                right * speed
-            );
-
-    } else {
-
-        desktopControls
-            .moveForward(
-                forward * speed
-            );
-
-
-        desktopControls
-            .moveRight(
-                right * speed
-            );
-    }
-
-
-    camera.position.x =
-        THREE.MathUtils.clamp(
-            camera.position.x,
-            -19,
-            19
-        );
-
-
-    camera.position.z =
-        THREE.MathUtils.clamp(
-            camera.position.z,
-            -19,
-            19
-        );
-}
-
-
-/* =========================================================
-   BALÓN
-   ========================================================= */
-
-function updateBall(delta) {
-
-    const playerFlat =
-        new THREE.Vector3(
-
-            camera.position.x,
-
-            ball.position.y,
-
-            camera.position.z
-        );
-
-
-    const distance =
-        playerFlat.distanceTo(
-            ball.position
-        );
-
-
-    if (
-        distance < 1.35
-    ) {
-
-        const direction =
-            ball.position
-                .clone()
-                .sub(
-                    playerFlat
-                )
-                .normalize();
-
-
-        ballVelocity
-            .addScaledVector(
-                direction,
-                4.5 * delta
-            );
-    }
-
-
-    ball.position
-        .addScaledVector(
-            ballVelocity,
-            delta
-        );
-
-
-    ballVelocity
-        .multiplyScalar(
-
-            Math.pow(
-                .965,
-                delta * 60
-            )
-        );
-
-
-    ball.position.y =
-        .95;
-
-
-    if (
-        Math.abs(
-            ball.position.x
-        ) > 19
-    ) {
-
-        ball.position.x =
-            Math.sign(
-                ball.position.x
-            ) * 19;
-
-
-        ballVelocity.x *=
-            -.7;
-    }
-
-
-    if (
-        Math.abs(
-            ball.position.z
-        ) > 19
-    ) {
-
-        ball.position.z =
-            Math.sign(
-                ball.position.z
-            ) * 19;
-
-
-        ballVelocity.z *=
-            -.7;
-    }
-
-
-    if (
-
-        ball.position.z <
-            -12.7 &&
-
-        Math.abs(
-            ball.position.x
-        ) < 2.8
-
-    ) {
-
-        showMessage(
-            '⚽ ¡GOOOOOOL! ⚽'
-        );
-
-
-        ball.position.set(
-            0,
-            .95,
-            -5
-        );
-
-
-        ballVelocity.set(
-            0,
-            0,
-            0
-        );
-    }
-}
-
-
-/* =========================================================
-   AUTOGUARDADO
-   ========================================================= */
-
-setInterval(
-    () => {
-
-        if (
-            currentUser &&
-            startScreen.style.display ===
-                'none'
-        ) {
-
-            saveWorld();
-        }
-
+        return revision;
+      },
     },
-    15000
-);
-
-
-document.addEventListener(
-    'visibilitychange',
-    () => {
-
-        if (
-            document.hidden &&
-            currentUser
-        ) {
-
-            saveWorld();
-        }
-    }
-);
-
-
-/* =========================================================
-   GAME LOOP
-   ========================================================= */
-
-const clock =
-    new THREE.Clock();
-
-
-function animate() {
-
-    requestAnimationFrame(
-        animate
+    localStorage,
+    "ari-craft:04:demo-journal",
+  );
+}
+async function initializeAuth() {
+  $("loginButton").disabled = true;
+  $("loginButton").textContent = "Preparando Google…";
+  try {
+    backend = await connectFirebase();
+    $("loginButton").textContent = "Entrar con Google ↗";
+    backend.watch((nextUser) => {
+      user = nextUser;
+      if (mode === "local") return;
+      if (user) void loadSession(backend.session(user.uid), "cloud");
+      else if (mode === "cloud") {
+        ready = false;
+        pause();
+        location.reload();
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    $("loginButton").textContent = "Reintentar conexión con Google";
+    if (!mode)
+      $("menuStatus").textContent =
+        `No se pudo preparar Google (${error.code || error.message}). Comprueba la conexión y pulsa Reintentar.`;
+  } finally {
+    $("loginButton").disabled = false;
+  }
+}
+$("loginButton").onclick = async () => {
+  // Finish SDK setup first. Opening the popup must remain in the next click's
+  // user activation, rather than following an asynchronous network request.
+  if (!backend) {
+    await initializeAuth();
+    if (backend)
+      $("menuStatus").textContent =
+        "Google está listo. Pulsa Entrar con Google.";
+    return;
+  }
+  $("loginButton").disabled = true;
+  try {
+    await backend.login();
+  } catch (error) {
+    const messages = {
+      "auth/unauthorized-domain": `Firebase no tiene autorizado este dominio (${location.hostname}). Abre la versión de prueba en albertogarabato.github.io/ARI-CRAFT/prueba/.`,
+      "auth/popup-blocked":
+        "El navegador ha bloqueado la ventana de Google. Abre este enlace directamente en Chrome o Safari y permite las ventanas emergentes para este sitio.",
+      "auth/popup-closed-by-user":
+        "La ventana de Google se ha cerrado antes de terminar. Pulsa Entrar con Google para reintentar.",
+      "auth/network-request-failed":
+        "No se pudo conectar con Google. Comprueba la conexión y vuelve a intentarlo.",
+    };
+    $("menuStatus").textContent =
+      messages[error.code] ||
+      `No se pudo entrar con Google (${error.code || error.message}). Copia este mensaje para revisar el problema.`;
+  } finally {
+    $("loginButton").disabled = false;
+  }
+};
+$("demoButton").onclick = () => void loadSession(localSession(), "local");
+$("fallbackButton").onclick = () => {
+  if (!ready) return;
+  dragCamera = true;
+  playing = true;
+  clearInput();
+  $("menu").hidden = true;
+  document.body.classList.remove("paused");
+  toast(
+    "Arrastra con el botón derecho para mirar. Clic derecho sin arrastrar para construir.",
+  );
+};
+$("playButton").onclick = play;
+$("pauseButton").onclick = pause;
+$("saveButton").onclick = () => {
+  dirty = true;
+  void save();
+};
+$("logoutButton").onclick = async () => {
+  await save();
+  if (session?.pending || dirty) {
+    toast(
+      "Quedan cambios por guardar. Reintenta o descarga tu copia antes de cambiar de cuenta.",
     );
-
-
-    const delta =
-        Math.min(
-            clock.getDelta(),
-            .05
-        );
-
-
-    const playing =
-
-        isTouch
-
-            ? startScreen
-                .style
-                .display ===
-                'none'
-
-            : desktopControls
-                .isLocked;
-
-
-    if (playing) {
-
-        movePlayer(
-            delta
-        );
-
-
-        verticalVelocity -=
-            18 * delta;
-
-
-        camera.position.y +=
-            verticalVelocity *
-            delta;
-
-
-        if (
-            camera.position.y <=
-            2.2
-        ) {
-
-            camera.position.y =
-                2.2;
-
-            verticalVelocity =
-                0;
-
-            grounded =
-                true;
-        }
-
-
-        updateBall(
-            delta
-        );
+    return;
+  }
+  if (mode === "cloud") await backend.logout();
+  else location.reload();
+};
+function downloadCopy(raw) {
+  const blob = new Blob([raw], { type: "application/json" }),
+    url = URL.createObjectURL(blob),
+    a = document.createElement("a");
+  a.href = url;
+  a.download = `ari-craft-04-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+$("exportButton").onclick = () => {
+  const raw = session && localStorage.getItem(session.key);
+  if (raw) downloadCopy(raw);
+  else if (ready) downloadCopy(JSON.stringify({ state: snapshot() }));
+  else toast("No hay una copia local disponible.");
+};
+$("reloadButton").onclick = async () => {
+  if (!session) return;
+  // Retain the journal under a separate key before explicitly loading the cloud.
+  try {
+    const raw = localStorage.getItem(session.key);
+    if (raw) {
+      localStorage.setItem(`${session.key}:backup:${Date.now()}`, raw);
+      downloadCopy(raw);
+      localStorage.removeItem(session.key);
     }
-
-
-    renderer.render(
-        scene,
-        camera
+    await loadSession(
+      mode === "local" ? localSession() : backend.session(user.uid),
+      mode,
+    );
+  } catch (error) {
+    $("menuStatus").textContent =
+      `No se pudo conservar la copia: ${error.message}`;
+  }
+};
+document.addEventListener("pointerlockchange", () => {
+  const locked = document.pointerLockElement === renderer.domElement;
+  if (locked && ready) {
+    playing = true;
+    clearInput();
+    $("menu").hidden = true;
+    document.body.classList.remove("paused");
+  } else pause();
+});
+document.addEventListener("pointerlockerror", () => {
+  pause();
+  $("fallbackButton").hidden = false;
+  toast("Este navegador necesita la cámara al arrastrar.");
+});
+document.addEventListener("mousemove", (e) => {
+  if (playing && !dragCamera) player.look(e.movementX, e.movementY);
+});
+document.addEventListener("keydown", (e) => {
+  if (!playing) return;
+  if (
+    [
+      "Space",
+      "Tab",
+      "KeyW",
+      "KeyA",
+      "KeyS",
+      "KeyD",
+      "KeyE",
+      "ShiftLeft",
+      "ShiftRight",
+    ].includes(e.code) ||
+    /^Digit[1-9]$/.test(e.code)
+  )
+    e.preventDefault();
+  if (e.code === "KeyE" || e.code === "Escape") {
+    pause();
+    return;
+  }
+  keys.add(e.code);
+  if (/^Digit[1-9]$/.test(e.code)) {
+    inventory.select(Number(e.code.slice(-1)) - 1);
+    renderInventory();
+    changed();
+  }
+});
+document.addEventListener("keyup", (e) => keys.delete(e.code));
+renderer.domElement.addEventListener(
+  "wheel",
+  (e) => {
+    if (!playing) return;
+    e.preventDefault();
+    inventory.select((inventory.selected + (e.deltaY > 0 ? 1 : 8)) % 9);
+    renderInventory();
+    changed();
+  },
+  { passive: false },
+);
+function target() {
+  player.syncCamera(camera);
+  camera.getWorldDirection(direction);
+  return world.raycast(camera.position, direction);
+}
+function placeSelected() {
+  if (placeBlock(world, inventory, player, target())) {
+    renderInventory();
+    changed();
+    $("mission").textContent = "¡Tu primera construcción! Sigue imaginando.";
+  } else
+    toast(
+      !inventory.type || !inventory.counts[inventory.type]
+        ? "Primero recoge bloques de este material."
+        : "No puedes construir aquí: deja espacio para moverte.",
     );
 }
-
-
-animate();
-
-
-/* =========================================================
-   RESIZE
-   ========================================================= */
-
-addEventListener(
-    'resize',
-    () => {
-
-        camera.aspect =
-            innerWidth /
-            innerHeight;
-
-
-        camera
-            .updateProjectionMatrix();
-
-
-        renderer.setSize(
-            innerWidth,
-            innerHeight
-        );
+renderer.domElement.addEventListener("pointerdown", (e) => {
+  if (!playing) return;
+  if (e.button === 0) mining = true;
+  if (e.button === 2) {
+    if (dragCamera) {
+      rightDrag = { x: e.clientX, y: e.clientY, distance: 0 };
+      renderer.domElement.setPointerCapture(e.pointerId);
+    } else placeSelected();
+  }
+});
+renderer.domElement.addEventListener("pointermove", (e) => {
+  if (!playing || !dragCamera || !rightDrag) return;
+  const dx = e.clientX - rightDrag.x,
+    dy = e.clientY - rightDrag.y;
+  rightDrag.distance += Math.hypot(dx, dy);
+  rightDrag.x = e.clientX;
+  rightDrag.y = e.clientY;
+  player.look(dx, dy);
+});
+renderer.domElement.addEventListener("pointerup", (e) => {
+  if (e.button === 2 && rightDrag) {
+    if (playing && rightDrag.distance < 4) placeSelected();
+    rightDrag = null;
+  }
+});
+renderer.domElement.addEventListener("pointercancel", clearInput);
+document.addEventListener("mouseup", (e) => {
+  if (e.button === 0) {
+    mining = false;
+    mineKey = "";
+    mineTime = 0;
+  }
+});
+renderer.domElement.addEventListener("contextmenu", (e) => e.preventDefault());
+addEventListener("blur", () => {
+  if (playing) pause();
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    pause();
+    checkpoint();
+    void save();
+  }
+});
+addEventListener("pagehide", checkpoint);
+addEventListener("beforeunload", (e) => {
+  checkpoint();
+  if (session?.pending && mode === "cloud") {
+    e.preventDefault();
+    e.returnValue = "";
+  }
+});
+addEventListener("online", () => void save());
+setInterval(() => {
+  checkpoint();
+  void save();
+}, 5000);
+function updateMining(dt) {
+  const hit = target();
+  outline.visible = !!hit;
+  if (hit) outline.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
+  $("targetLabel").textContent = hit ? BLOCKS[hit.type].name : "";
+  if (!mining || !hit || hit.type === 8) {
+    mineKey = "";
+    mineTime = 0;
+    $("breakProgress").hidden = true;
+    return;
+  }
+  const key = `${hit.x},${hit.y},${hit.z}`;
+  if (key !== mineKey) {
+    mineKey = key;
+    mineTime = 0;
+  }
+  mineTime += dt;
+  $("breakProgress").hidden = false;
+  $("breakProgress").value = mineTime / BLOCKS[hit.type].time;
+  if (mineTime >= BLOCKS[hit.type].time) {
+    if (mineBlock(world, inventory, hit)) {
+      renderInventory();
+      changed();
+      $("mission").textContent =
+        "Selecciona tu bloque y usa el botón derecho para construir.";
+    } else {
+      toast(
+        "No se pudo recoger: inventario o límite de cambios del mundo alcanzado.",
+      );
+      mining = false;
     }
-);
+    mineTime = 0;
+    mineKey = "";
+  }
+}
+let previous = performance.now();
+function frame(now) {
+  const dt = Math.min((now - previous) / 1000, 0.1);
+  previous = now;
+  if (playing) {
+    accumulator += dt;
+    const input = {
+      forward: Number(keys.has("KeyW")) - Number(keys.has("KeyS")),
+      right: Number(keys.has("KeyD")) - Number(keys.has("KeyA")),
+      sprint: keys.has("ShiftLeft") || keys.has("ShiftRight"),
+      jump: keys.has("Space"),
+    };
+    const before = player.snapshot();
+    while (accumulator >= 1 / 120) {
+      player.update(1 / 120, input);
+      accumulator -= 1 / 120;
+    }
+    if (
+      before.x !== player.position.x ||
+      before.y !== player.position.y ||
+      before.z !== player.position.z
+    )
+      dirty = true;
+    // Include camera orientation even when the player is standing still.
+    if (player.yaw !== lastYaw || player.pitch !== lastPitch) {
+      dirty = true;
+      lastYaw = player.yaw;
+      lastPitch = player.pitch;
+    }
+    player.syncCamera(camera);
+    updateMining(dt);
+  }
+  view.update();
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+let lastYaw = 0,
+  lastPitch = 0;
+renderInventory();
+requestAnimationFrame(frame);
+void initializeAuth();
+addEventListener("resize", () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});

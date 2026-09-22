@@ -1,392 +1,547 @@
-/* =========================================================
-   ARI CRAFT · v0.2
-   Interfaz Desktop + Mobile
-   ========================================================= */
-
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+:root {
+  color-scheme: dark;
+  font-family: "DM Sans", sans-serif;
+  color: #f6f2e6;
+  background: #a9cad1;
+  font-synthesis: none;
+  --ink: #17343b;
+  --lime: #daf09a;
+  --cream: #f7f3e8;
+}
 * {
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
+  box-sizing: border-box;
 }
-
-html,
 body {
-    margin: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: #78bde8;
-    font-family: Arial, Helvetica, sans-serif;
-    touch-action: none;
+  margin: 0;
+  overflow: hidden;
 }
-
-#game {
-    position: fixed;
-    inset: 0;
+button,
+summary {
+  -webkit-tap-highlight-color: transparent;
 }
-
+button {
+  font: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+button:focus-visible,
+summary:focus-visible {
+  outline: 3px solid #e3eeae;
+  outline-offset: 5px;
+}
+[hidden] {
+  display: none !important;
+}
+#game,
+#game canvas,
+#menu,
+#hud {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
 #game canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
+  display: block;
 }
-
-/* ---------- HUD ---------- */
-
-#logo {
-    position: fixed;
-    top: 16px;
-    left: 18px;
-    z-index: 20;
-    color: white;
-    font-size: 25px;
-    font-weight: 900;
-    letter-spacing: 1px;
-    text-shadow: 2px 3px 0 rgba(0,0,0,.55);
-    pointer-events: none;
+#menu {
+  display: flex;
+  align-items: center;
+  padding: 42px 7vw;
+  background: linear-gradient(
+    90deg,
+    rgba(15, 35, 41, 0.9),
+    rgba(15, 35, 41, 0.6) 40%,
+    rgba(15, 35, 41, 0.05) 75%
+  );
+  overflow: auto;
 }
-
+.menu-card {
+  width: 440px;
+  max-width: 100%;
+  position: relative;
+  margin: auto 0;
+}
+.eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #c7d3c5;
+}
+.status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--lime);
+  box-shadow: 0 0 15px #daf09a66;
+}
+h1 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 78px;
+  letter-spacing: -6px;
+  line-height: 1;
+  margin: 28px 0 16px;
+  font-weight: 700;
+  position: relative;
+}
+h1 span {
+  color: var(--lime);
+}
+h1 sup {
+  font:
+    10px "DM Sans",
+    sans-serif;
+  letter-spacing: 1px;
+  position: absolute;
+  top: -3px;
+  border: 1px solid #b6c9b566;
+  padding: 4px;
+  border-radius: 5px;
+  margin-left: 9px;
+}
+.intro {
+  font:
+    500 27px "Space Grotesk",
+    sans-serif;
+  letter-spacing: -0.8px;
+  margin: 0 0 12px;
+}
+.description {
+  font-size: 14px;
+  color: #c2cfcd;
+  line-height: 1.75;
+  margin: 0 0 26px;
+}
+.features {
+  display: flex;
+  gap: 20px;
+  padding: 18px 0;
+  margin-bottom: 26px;
+  border-block: 1px solid #bdd0c42b;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: #d3dfce;
+  font-weight: 700;
+}
+.primary,
+.secondary {
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  padding: 17px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+.primary {
+  background: var(--lime);
+  color: var(--ink);
+  box-shadow: 0 3px 0 #9fac79;
+}
+.primary span {
+  float: right;
+  font-size: 18px;
+}
+.primary:hover {
+  background: #e5f9b1;
+  transform: translateY(-1px);
+}
+.secondary {
+  background: #f0f3e910;
+  color: #e4e9dc;
+  border: 1px solid #d5e3cf36;
+  text-align: center;
+  margin-top: 12px;
+}
+.secondary:hover {
+  background: #f0f3e921;
+}
+#menuStatus {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #bacbc4;
+  margin: 18px 0;
+}
+#greeting {
+  font-size: 15px;
+  color: #e9f3d7;
+}
+.menu-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.menu-actions button {
+  background: none;
+  border: 1px solid #d5e3cf36;
+  color: #e5efdc;
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 12px;
+}
+details {
+  font-size: 12px;
+  color: #c4d3c9;
+  margin-top: 22px;
+}
+summary {
+  cursor: pointer;
+  color: #ecf1e6;
+  font-weight: 600;
+}
+details p {
+  line-height: 1.6;
+}
+.controls-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 15px;
+}
+kbd {
+  font:
+    10px "DM Sans",
+    sans-serif;
+  border: 1px solid #cad5c24a;
+  border-radius: 3px;
+  padding: 3px 5px;
+  margin-right: 4px;
+}
+footer {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #bdd0c42b;
+  margin-top: 30px;
+  padding-top: 20px;
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  color: #aabfb9;
+}
+.world-caption {
+  position: fixed;
+  right: 45px;
+  bottom: 34px;
+  font:
+    600 11px "Space Grotesk",
+    sans-serif;
+  letter-spacing: 2px;
+  color: #fff;
+  text-shadow: 0 1px 4px #294740;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.world-caption small {
+  font-size: 8px;
+  opacity: 0.8;
+  letter-spacing: 1px;
+}
+#hud {
+  pointer-events: none;
+}
+.hud-top {
+  position: absolute;
+  top: 26px;
+  left: 30px;
+  right: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.brand {
+  font:
+    700 25px "Space Grotesk",
+    sans-serif;
+  letter-spacing: -1px;
+  text-shadow: 0 2px 8px #17343b66;
+}
+.brand span {
+  color: var(--lime);
+}
+.brand small {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 2px;
+  margin-top: 3px;
+}
+.hud-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+}
+#saveStatus {
+  padding: 9px 12px;
+  background: #19343bad;
+  border: 1px solid #eef5df24;
+  border-radius: 5px;
+}
+#pauseButton {
+  pointer-events: auto;
+  color: var(--cream);
+  background: #19343bc9;
+  border: 1px solid #eef5df24;
+  border-radius: 5px;
+  width: 35px;
+  height: 35px;
+}
+#objective {
+  position: absolute;
+  left: 30px;
+  top: 104px;
+  background: #19343bad;
+  padding: 14px 18px;
+  border: 1px solid #eef5df24;
+  border-radius: 6px;
+  max-width: 320px;
+}
+#objective .eyebrow {
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  margin-bottom: 8px;
+  color: var(--lime);
+}
+#mission {
+  font-size: 12px;
+  color: #edf2e5;
+  line-height: 1.5;
+}
 #crosshair {
-    position: fixed;
-    left: 50%;
-    top: 50%;
-    z-index: 15;
-    transform: translate(-50%, -50%);
-    color: white;
-    font-size: 28px;
-    font-weight: bold;
-    text-shadow: 0 1px 3px black;
-    pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font: 24px monospace;
+  color: white;
+  text-shadow: 0 1px 3px #14313b;
 }
-
-#desktopHelp {
-    position: fixed;
-    top: 60px;
-    left: 18px;
-    z-index: 20;
-    padding: 11px 14px;
-    border-radius: 10px;
-    background: rgba(10, 20, 25, .67);
-    color: rgba(255,255,255,.9);
-    font-size: 13px;
-    line-height: 1.55;
-    pointer-events: none;
+#targetLabel {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 28px);
+  transform: translateX(-50%);
+  font-size: 11px;
+  text-shadow: 0 1px 3px #14313b;
 }
-
-/* ---------- HOTBAR ---------- */
-
+#breakProgress {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 51px);
+  transform: translateX(-50%);
+  width: 100px;
+  height: 5px;
+  border: none;
+  border-radius: 5px;
+  accent-color: var(--lime);
+}
+progress::-webkit-progress-bar {
+  background: #16313899;
+  border-radius: 5px;
+}
+progress::-webkit-progress-value {
+  background: var(--lime);
+  border-radius: 5px;
+}
+.hotbar-wrap {
+  position: absolute;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+#selectedLabel {
+  font-size: 12px;
+  margin-bottom: 13px;
+  text-shadow: 0 1px 5px #17343b;
+}
 #hotbar {
-    position: fixed;
-    z-index: 30;
-    left: 50%;
-    bottom: 22px;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 6px;
+  display: flex;
+  gap: 5px;
+  background: #15333dc9;
+  padding: 7px;
+  border-radius: 9px;
+  border: 1px solid #e4eddf38;
+  box-shadow: 0 8px 24px #17343b30;
 }
-
 .slot {
-    width: 58px;
-    height: 58px;
-    display: grid;
-    place-items: center;
-    border: 3px solid rgba(255,255,255,.55);
-    border-radius: 7px;
-    background: rgba(20,20,20,.72);
-    color: white;
-    font-size: 29px;
-    cursor: pointer;
+  pointer-events: auto;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid #e4eddf25;
+  border-radius: 5px;
+  background: #c7d8c511;
+  color: white;
+  transition: border-color 0.15s;
 }
-
 .slot.active {
-    border-color: white;
-    background: rgba(255,255,255,.22);
-    transform: translateY(-5px);
+  border: 2px solid var(--lime);
+  background: #d9ed9928;
+  box-shadow: 0 0 0 2px #daf09a18;
 }
-
-/* ---------- PANTALLA INICIAL ---------- */
-
-#start {
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    display: grid;
-    place-items: center;
-    padding: 20px;
-    background: rgba(5,15,20,.48);
+.slot small {
+  position: absolute;
+  left: 5px;
+  top: 3px;
+  font-size: 9px;
+  color: #d2dec7;
 }
-
-#startBox {
-    width: min(430px, 92vw);
-    padding: 30px;
-    border-radius: 17px;
-    background: rgba(20,22,22,.94);
-    color: white;
-    text-align: center;
-    box-shadow: 0 15px 50px rgba(0,0,0,.35);
+.slot b {
+  position: absolute;
+  right: 5px;
+  bottom: 2px;
+  font-size: 11px;
+  text-shadow: 0 1px 2px #18343b;
 }
-
-#startBox h1 {
-    margin: 0;
-    font-size: clamp(35px, 7vw, 48px);
-    letter-spacing: 2px;
+.slot i {
+  display: block;
+  width: 24px;
+  height: 25px;
+  background: var(--block);
+  transform: rotate(-8deg) skewY(4deg);
+  border-top: 5px solid #ffffff35;
+  border-right: 6px solid #16303944;
+  box-shadow: 0 3px 3px #19363c66;
 }
-
-#startBox h2 {
-    margin: 12px 0;
+.slot.empty i {
+  opacity: 0.3;
 }
-
-#startBox p {
-    margin: 18px 0 25px;
-    line-height: 1.55;
+.slot.empty b {
+  color: #8eaaa4;
 }
-
-#startButton {
-    min-height: 55px;
-    width: 100%;
-    border: 0;
-    border-radius: 9px;
-    background: #58a92d;
-    color: white;
-    font-size: 19px;
-    font-weight: 900;
-    cursor: pointer;
+.keys-hint {
+  margin-top: 12px;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  text-shadow: 0 1px 4px #17343b;
 }
-
-/* ---------- CONTROLES MÓVILES ---------- */
-
-#mobileControls {
+.keys-hint span {
+  margin: 0 14px;
+}
+#toast {
+  position: fixed;
+  bottom: 145px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 80vw;
+  background: #17343bee;
+  border: 1px solid #d9ed9966;
+  color: #eff7dd;
+  border-radius: 6px;
+  padding: 12px 20px;
+  font-size: 13px;
+  z-index: 10;
+  text-align: center;
+}
+#touchNotice {
+  color: #ead29b;
+  font-size: 12px;
+  line-height: 1.6;
+}
+@media (max-height: 760px) {
+  #menu {
+    padding: 24px 6vw;
+  }
+  h1 {
+    font-size: 65px;
+    margin-top: 20px;
+  }
+  .description {
+    margin-bottom: 16px;
+  }
+  .features {
+    margin-bottom: 18px;
+    padding: 13px 0;
+  }
+  footer {
+    margin-top: 20px;
+  }
+  details {
+    margin-top: 14px;
+  }
+  .primary,
+  .secondary {
+    padding: 14px 18px;
+  }
+}
+@media (max-width: 700px) {
+  #menu {
+    padding: 28px;
+    background: #142f39d9;
+  }
+  .menu-card {
+    margin: auto;
+    max-width: 420px;
+  }
+  h1 {
+    font-size: 62px;
+  }
+  .world-caption {
     display: none;
-}
-
-/* Joystick */
-
-#joystickZone {
-    position: fixed;
-    z-index: 40;
-    left: 22px;
-    bottom: 25px;
-    width: 135px;
-    height: 135px;
-    border: 3px solid rgba(255,255,255,.42);
-    border-radius: 50%;
-    background: rgba(0,0,0,.24);
-    touch-action: none;
-}
-
-#joystickStick {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 62px;
-    height: 62px;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
-    border: 3px solid rgba(255,255,255,.7);
-    background: rgba(255,255,255,.32);
-}
-
-/* Botones acción */
-
-#mobileActions {
-    position: fixed;
-    z-index: 40;
-    right: 20px;
-    bottom: 22px;
-    display: grid;
-    grid-template-columns: repeat(2, 66px);
-    gap: 10px;
-}
-
-.actionButton {
-    width: 66px;
-    height: 66px;
-    border: 3px solid rgba(255,255,255,.7);
-    border-radius: 50%;
-    background: rgba(10,15,15,.55);
-    color: white;
-    font-size: 26px;
-    font-weight: bold;
-    touch-action: none;
-}
-
-.actionButton:active {
-    transform: scale(.92);
-    background: rgba(255,255,255,.28);
-}
-
-/* Área derecha para mirar */
-
-#lookZone {
-    position: fixed;
-    z-index: 10;
-    top: 0;
-    right: 0;
-    width: 55%;
-    height: 75%;
-    touch-action: none;
-}
-
-/* ---------- MENSAJES ---------- */
-
-#gameMessage {
-    position: fixed;
-    z-index: 35;
-    left: 50%;
-    top: 75px;
-    transform: translateX(-50%);
-    padding: 9px 16px;
-    border-radius: 20px;
-    background: rgba(0,0,0,.55);
-    color: white;
-    font-size: 14px;
-    opacity: 0;
-    transition: opacity .25s;
-    pointer-events: none;
-}
-
-#gameMessage.visible {
-    opacity: 1;
-}
-
-/* ---------- AVISO ORIENTACIÓN ---------- */
-
-#rotateMessage {
+  }
+  .slot {
+    width: 36px;
+    height: 44px;
+  }
+  #hotbar {
+    gap: 3px;
+    padding: 5px;
+  }
+  .keys-hint {
     display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 500;
-    place-items: center;
-    padding: 30px;
-    background: #172326;
-    color: white;
-    text-align: center;
+  }
+  .hud-top {
+    left: 15px;
+    right: 15px;
+  }
+  #objective {
+    left: 15px;
+    top: 100px;
+  }
+  .features {
+    gap: 14px;
+    font-size: 8px;
+  }
+  .slot i {
+    width: 20px;
+    height: 21px;
+  }
+  .hotbar-wrap {
+    bottom: 16px;
+  }
+  footer {
+    font-size: 7px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
 }
 
-#rotateMessage .rotateIcon {
-    display: block;
-    margin-bottom: 15px;
-    font-size: 60px;
+.paused .hud-top,
+.paused #objective,
+.paused #crosshair,
+.paused #targetLabel,
+.paused .hotbar-wrap {
+  display: none;
 }
-
-/* =========================================================
-   MÓVIL / TABLET
-   ========================================================= */
-
-@media (hover: none) and (pointer: coarse) {
-
-    #desktopHelp {
-        display: none;
-    }
-
-    #mobileControls {
-        display: block;
-    }
-
-    #logo {
-        top: 10px;
-        left: 12px;
-        font-size: 18px;
-    }
-
-    #crosshair {
-        font-size: 24px;
-    }
-
-    #hotbar {
-        bottom: 12px;
-        gap: 4px;
-    }
-
-    .slot {
-        width: 47px;
-        height: 47px;
-        font-size: 23px;
-        border-width: 2px;
-    }
-
-    #startBox {
-        padding: 22px;
-    }
-
-    #startBox p {
-        margin: 12px 0 18px;
-    }
-}
-
-/* Móvil horizontal */
-
-@media (hover: none) and (pointer: coarse) and (orientation: landscape) {
-
-    #hotbar {
-        bottom: 10px;
-    }
-
-    #joystickZone {
-        width: 125px;
-        height: 125px;
-        left: 18px;
-        bottom: 18px;
-    }
-
-    #mobileActions {
-        right: 18px;
-        bottom: 18px;
-    }
-}
-
-/* Móvil vertical: pedir que se gire */
-
-@media (hover: none) and (pointer: coarse) and (orientation: portrait) {
-
-    #rotateMessage {
-        display: grid;
-    }
-}
-
-/* Pantallas pequeñas en horizontal */
-
-@media (max-height: 500px) and (orientation: landscape) {
-
-    #startBox {
-        width: min(520px, 88vw);
-        padding: 16px 24px;
-    }
-
-    #startBox h1 {
-        font-size: 32px;
-    }
-
-    #startBox h2 {
-        margin: 6px;
-        font-size: 18px;
-    }
-
-    #startBox p {
-        margin: 8px 0 12px;
-        font-size: 13px;
-    }
-
-    #startButton {
-        min-height: 45px;
-    }
-
-    #joystickZone {
-        width: 110px;
-        height: 110px;
-    }
-
-    #joystickStick {
-        width: 52px;
-        height: 52px;
-    }
-
-    #mobileActions {
-        grid-template-columns: repeat(2, 58px);
-    }
-
-    .actionButton {
-        width: 58px;
-        height: 58px;
-    }
+.paused .world-caption {
+  display: none;
 }
