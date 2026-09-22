@@ -17,7 +17,7 @@
       content="El mundo de Ari. Explora, recoge y construye tu propio mundo de bloques."
     />
     <title>ARI CRAFT · El mundo de Ari</title>
-    <link rel="stylesheet" href="./css/game.css" />
+    <link rel="stylesheet" href="./css/game.css?v=0.4.1" />
     <script type="importmap">
       {
         "imports": {
@@ -193,7 +193,7 @@
     <div id="toast" role="status" hidden></div>
     <noscript>Activa JavaScript para jugar a ARI CRAFT.</noscript>
     <script type="module">
-      import("./js/game.js").catch((error) => {
+      import("./js/game.js?v=0.4.1").catch((error) => {
         console.error(error);
         document.querySelector("#menuStatus").textContent =
           "No se pudo iniciar el juego. Revisa la conexión y recarga la página.";
