@@ -43,7 +43,7 @@ import {
 const firebaseConfig = {
 
     apiKey:
-        "AIzaSyDFe32AgdruOh_sUn8_05NGAF2NDItP5jU",
+        "AIzaSyDFe32AgdruOh_sUn8_O5NGAF2NDItP5jU",
 
     authDomain:
         "ari-craft.firebaseapp.com",
