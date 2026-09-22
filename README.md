@@ -1,4 +1,4 @@
-# ARI CRAFT · 0.4
+# ARI CRAFT · 0.4.1
 
 El mundo de Ari: un sandbox voxel para explorar, recoger y construir. Funciona como web estática en GitHub Pages, sin compilación. Texturas procedurales originales; no utiliza assets de Minecraft.
 
@@ -40,6 +40,7 @@ npm test
 | `js/game.js`      | Escena, interacción, estados de juego y coordinación del guardado     |
 | `js/world.js`     | Terreno, árboles, modificaciones, selección DDA y mallas por regiones |
 | `js/player.js`    | Movimiento, gravedad, salto, cámara y colisiones AABB                 |
+| `js/touch.js`     | Controles multitáctiles y propiedad independiente de cada dedo        |
 | `js/inventory.js` | Cantidades, hotbar y operaciones de recoger/colocar                   |
 | `js/firebase.js`  | Google Auth, lectura, transacciones, copia local, formato y migración |
 
@@ -68,7 +69,7 @@ Espera a **Guardado en la nube** antes de cambiar de dispositivo. No se depende 
 
 Mundo finito de 64 × 64 columnas y 64 bloques de altura, relieve determinista, árboles, suelo irrompible en la capa 0 y límite de 10.000 modificaciones activas para mantener el documento acotado. La cámara puede quedar por encima del techo de construcción. No hay daño por caída ni multijugador simultáneo.
 
-La interfaz se adapta a pantallas pequeñas, pero **esta fase requiere teclado y ratón**. El prototipo táctil y la demostración antigua de fútbol se sustituyen por el nuevo núcleo; los controles táctiles, el balón, porterías, marcador, crafting y retos pertenecen a las siguientes fases. No se presentan como funciones disponibles.
+En móvil aparecen controles táctiles: joystick izquierdo (hasta el borde para correr), cámara al arrastrar a la derecha y botones Saltar, Recoger y Colocar. Se recomienda horizontal; el aviso permite continuar en vertical. La interfaz respeta las áreas seguras y la altura visible del navegador. Pantalla completa se solicita cuando el navegador lo admite; en iPhone se explica cómo añadir el juego a la pantalla de inicio. El balón, porterías, marcador, crafting y retos pertenecen a las siguientes fases.
 
 ## GitHub Pages
 
