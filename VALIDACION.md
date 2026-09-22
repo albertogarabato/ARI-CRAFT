@@ -2,7 +2,7 @@
 
 ## Comprobado
 
-16 pruebas automatizadas con Node.js, sin dependencias:
+20 pruebas automatizadas con Node.js, sin dependencias:
 
 - Terreno idéntico para la misma semilla, relieve, capas y árboles.
 - Romper → recoger → colocar conserva las cantidades; recargar conserva las modificaciones.
@@ -44,3 +44,7 @@ Revisión visual en el navegador integrado:
 6. Guardar, esperar confirmación de nube, recargar y comprobar posición, inventario y construcción.
 7. Abrir la misma cuenta en otro dispositivo y comprobar la misma partida.
 8. Volver a una sesión anterior y editar: debe avisar del conflicto, conservar su copia y no sobrescribir la nube.
+
+## Adaptación móvil 0.4.1
+
+Cuatro pruebas adicionales verifican movimiento y mirada simultáneos, recogida y salto con varios dedos, zona muerta y normalización del joystick, cancelación de gestos y liberación de botones. Revisión de interfaz en 390 × 844 y 844 × 390: aviso de orientación, entrada sin captura de ratón, controles dentro del área visible y barra de materiales. El usuario ya confirmó Google, construcción y recuperación en la versión 0.4. La pantalla completa y la interacción multitáctil en un teléfono físico requieren validación en el dispositivo real.

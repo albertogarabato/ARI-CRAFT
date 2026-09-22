@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { bindTouchControls } from "./touch.js";
 import { World, BLOCKS, createWorldView } from "./world.js";
 import { Player } from "./player.js";
 import { Inventory, mineBlock, placeBlock } from "./inventory.js";
@@ -75,10 +76,88 @@ let mining = false,
   accumulator = 0;
 const keys = new Set(),
   direction = new THREE.Vector3();
-const hasTouchOnly = matchMedia("(hover: none) and (pointer: coarse)").matches;
-$("touchNotice").hidden = !hasTouchOnly;
+const nativeTouch = matchMedia("(pointer: coarse)").matches;
+let touchMode = nativeTouch;
+let portraitAllowed = false,
+  rotatePending = false;
+const touchInput = bindTouchControls({
+  elements: {
+    move: $("movePad"),
+    stick: $("moveStick"),
+    look: $("lookZone"),
+    jump: $("touchJump"),
+    mine: $("touchMine"),
+    place: $("touchPlace"),
+  },
+  active: () => playing && touchMode,
+  look: (x, y) => player.look(x * 1.5, y * 1.5),
+  place: placeSelected,
+  mine: (held) => {
+    if (touchMode) mining = held;
+  },
+});
+function updateTouchMode() {
+  document.body.classList.toggle("touch", touchMode);
+  $("touchNotice").hidden = !touchMode;
+  $("touchModeButton").textContent = touchMode
+    ? "Usar teclado y ratón"
+    : "Activar controles táctiles";
+  $("fullscreenHelp").hidden =
+    !!document.documentElement.requestFullscreen ||
+    matchMedia("(display-mode: standalone)").matches;
+  $("help").hidden = touchMode;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, touchMode ? 1.4 : 1.75));
+}
+updateTouchMode();
+function startTouch() {
+  if (!ready || document.hidden) return;
+  clearInput();
+  playing = true;
+  dragCamera = false;
+  $("menu").hidden = true;
+  $("touchControls").hidden = false;
+  $("rotatePrompt").hidden = true;
+  rotatePending = false;
+  document.body.classList.remove("paused");
+}
+function needsRotation() {
+  return touchMode && !portraitAllowed && innerHeight > innerWidth;
+}
+async function fullscreen() {
+  const root = document.documentElement;
+  if (document.fullscreenElement) return;
+  if (root.requestFullscreen) {
+    try {
+      await root.requestFullscreen({ navigationUI: "hide" });
+    } catch {
+      toast(
+        "Puedes seguir jugando. Usa el menú del navegador para ampliar la pantalla.",
+      );
+    }
+  } else {
+    $("fullscreenHelp").hidden = false;
+    toast("En iPhone: Compartir → Añadir a pantalla de inicio.");
+  }
+}
+$("fullscreenButton").onclick = fullscreen;
+$("touchModeButton").onclick = () => {
+  touchMode = !touchMode;
+  clearInput();
+  updateTouchMode();
+};
+$("portraitButton").onclick = () => {
+  portraitAllowed = true;
+  if (nativeTouch) void fullscreen();
+  startTouch();
+};
+$("rotateBack").onclick = () => {
+  rotatePending = false;
+  $("rotatePrompt").hidden = true;
+  pause();
+};
 function status(message) {
   $("saveStatus").textContent = message;
+  $("menuSaveStatus").textContent = message;
 }
 function toast(message) {
   $("toast").textContent = message;
@@ -107,6 +186,7 @@ function renderInventory() {
     : "Espacio vacío";
 }
 function clearInput() {
+  touchInput.reset();
   rightDrag = null;
   keys.clear();
   mining = false;
@@ -178,6 +258,7 @@ async function save() {
 }
 function pause() {
   playing = false;
+  $("touchControls").hidden = true;
   clearInput();
   outline.visible = false;
   $("targetLabel").textContent = "";
@@ -194,6 +275,17 @@ function pause() {
 }
 async function play() {
   if (!ready) return;
+  if (touchMode) {
+    if (nativeTouch) void fullscreen();
+    if (needsRotation()) {
+      rotatePending = true;
+      $("rotatePrompt").hidden = false;
+      $("portraitButton").focus();
+      return;
+    }
+    startTouch();
+    return;
+  }
   try {
     dragCamera = false;
     await renderer.domElement.requestPointerLock();
@@ -409,6 +501,7 @@ $("reloadButton").onclick = async () => {
   }
 };
 document.addEventListener("pointerlockchange", () => {
+  if (touchMode) return;
   const locked = document.pointerLockElement === renderer.domElement;
   if (locked && ready) {
     playing = true;
@@ -418,12 +511,14 @@ document.addEventListener("pointerlockchange", () => {
   } else pause();
 });
 document.addEventListener("pointerlockerror", () => {
+  if (touchMode) return;
   pause();
   $("fallbackButton").hidden = false;
   toast("Este navegador necesita la cámara al arrastrar.");
 });
 document.addEventListener("mousemove", (e) => {
-  if (playing && !dragCamera) player.look(e.movementX, e.movementY);
+  if (playing && !dragCamera && !touchMode)
+    player.look(e.movementX, e.movementY);
 });
 document.addEventListener("keydown", (e) => {
   if (!playing) return;
@@ -483,7 +578,7 @@ function placeSelected() {
     );
 }
 renderer.domElement.addEventListener("pointerdown", (e) => {
-  if (!playing) return;
+  if (!playing || touchMode) return;
   if (e.button === 0) mining = true;
   if (e.button === 2) {
     if (dragCamera) {
@@ -509,7 +604,7 @@ renderer.domElement.addEventListener("pointerup", (e) => {
 });
 renderer.domElement.addEventListener("pointercancel", clearInput);
 document.addEventListener("mouseup", (e) => {
-  if (e.button === 0) {
+  if (e.button === 0 && !touchMode) {
     mining = false;
     mineKey = "";
     mineTime = 0;
@@ -562,8 +657,9 @@ function updateMining(dt) {
     if (mineBlock(world, inventory, hit)) {
       renderInventory();
       changed();
-      $("mission").textContent =
-        "Selecciona tu bloque y usa el botón derecho para construir.";
+      $("mission").textContent = touchMode
+        ? "Toca tu bloque en la barra y pulsa Colocar."
+        : "Selecciona tu bloque y usa el botón derecho para construir.";
     } else {
       toast(
         "No se pudo recoger: inventario o límite de cambios del mundo alcanzado.",
@@ -581,10 +677,16 @@ function frame(now) {
   if (playing) {
     accumulator += dt;
     const input = {
-      forward: Number(keys.has("KeyW")) - Number(keys.has("KeyS")),
-      right: Number(keys.has("KeyD")) - Number(keys.has("KeyA")),
-      sprint: keys.has("ShiftLeft") || keys.has("ShiftRight"),
-      jump: keys.has("Space"),
+      forward: touchMode
+        ? touchInput.state.forward
+        : Number(keys.has("KeyW")) - Number(keys.has("KeyS")),
+      right: touchMode
+        ? touchInput.state.right
+        : Number(keys.has("KeyD")) - Number(keys.has("KeyA")),
+      sprint: touchMode
+        ? touchInput.state.sprint
+        : keys.has("ShiftLeft") || keys.has("ShiftRight"),
+      jump: touchMode ? touchInput.state.jump : keys.has("Space"),
     };
     const before = player.snapshot();
     while (accumulator >= 1 / 120) {
@@ -615,8 +717,26 @@ let lastYaw = 0,
 renderInventory();
 requestAnimationFrame(frame);
 void initializeAuth();
-addEventListener("resize", () => {
-  camera.aspect = innerWidth / innerHeight;
+function resizeGame() {
+  const width = document.documentElement.clientWidth,
+    height = Math.round(window.visualViewport?.height || innerHeight);
+  document.documentElement.style.setProperty("--screen-height", `${height}px`);
+  camera.aspect = width / height;
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
+  renderer.setSize(width, height);
+  if (!touchMode) return;
+  if (playing && needsRotation()) {
+    pause();
+    rotatePending = true;
+    $("rotatePrompt").hidden = false;
+  } else if (rotatePending && innerWidth > innerHeight) {
+    startTouch();
+  }
+}
+addEventListener("resize", resizeGame);
+window.visualViewport?.addEventListener("resize", resizeGame);
+addEventListener("orientationchange", () => {
+  clearInput();
+  setTimeout(resizeGame, 200);
 });
+resizeGame();

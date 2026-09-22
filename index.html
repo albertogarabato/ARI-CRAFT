@@ -6,6 +6,11 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <meta name="theme-color" content="#172f35" />
     <meta
       name="description"
@@ -33,6 +38,30 @@
           ><button id="pauseButton" aria-label="Pausar juego">Ⅱ</button>
         </div>
       </header>
+      <div id="touchControls" hidden>
+        <div id="lookZone" aria-label="Arrastra para mirar">
+          <span>ARRASTRA PARA MIRAR</span>
+        </div>
+        <div
+          id="movePad"
+          aria-label="Joystick: mover; hasta el borde para correr"
+        >
+          <span id="moveStick"></span><small>MOVER</small>
+        </div>
+        <div id="touchActions">
+          <button id="touchJump" aria-label="Saltar"><b>↑</b>Saltar</button>
+          <button
+            id="touchMine"
+            aria-label="Mantén pulsado para recoger un bloque"
+          >
+            <b>⛏</b>Recoger<small>MANTÉN</small>
+          </button>
+          <button id="touchPlace" aria-label="Colocar el bloque seleccionado">
+            <b>▣</b>Colocar<small>TOCA</small>
+          </button>
+        </div>
+        <div id="touchTip">Mueve a la izquierda · mira a la derecha</div>
+      </div>
       <div id="objective">
         <span class="eyebrow">TU PRIMERA AVENTURA</span
         ><span id="mission">Recoge un bloque y construye algo tuyo.</span>
@@ -60,7 +89,7 @@
         <div class="eyebrow">
           <span class="status-dot"></span> UN PEQUEÑO MUNDO. INFINITAS IDEAS.
         </div>
-        <h1 id="menuTitle">ARI<span>CRAFT</span><sup>0.4</sup></h1>
+        <h1 id="menuTitle">ARI<span>CRAFT</span><sup>0.4.1</sup></h1>
         <p class="intro">El mundo de Ari.</p>
         <p class="description">
           Un árbol, tu primera casa, una nueva aventura.<br />Todo empieza con
@@ -84,13 +113,16 @@
           Explorar una partida local
         </button>
         <div class="menu-actions">
-          <button id="saveButton" hidden>Guardar ahora</button
+          <button id="fullscreenButton">⛶ Pantalla completa</button
+          ><button id="touchModeButton">Activar controles táctiles</button
+          ><button id="saveButton" hidden>Guardar ahora</button
           ><button id="logoutButton" hidden>Cambiar de cuenta</button
           ><button id="exportButton" hidden>Descargar copia local</button
           ><button id="reloadButton" hidden>
             Cargar nube y conservar copia aparte
           </button>
         </div>
+        <p id="menuSaveStatus" role="status"></p>
         <p id="menuStatus" role="status">
           Tu mundo con Google se guarda entre dispositivos.<br />La partida
           local se guarda solo en este navegador.
@@ -114,10 +146,20 @@
             bloque de tu inventario. Acércate a menos de 6 bloques.
           </p>
         </details>
-        <p id="touchNotice" hidden>
-          Esta versión se juega con teclado y ratón. Los controles táctiles
-          llegarán en la siguiente fase.
-        </p>
+        <div id="touchNotice" hidden>
+          <p class="rotate-hint">
+            ↻ Gira el móvil: en horizontal tendrás más espacio para jugar.
+          </p>
+          <p>
+            Izquierda: mueve el joystick. Derecha: arrastra para mirar. Apunta
+            con la cruz y mantén <b>Recoger</b>; toca <b>Colocar</b> para
+            construir.
+          </p>
+          <p id="fullscreenHelp" hidden>
+            En iPhone: abre Compartir → Añadir a pantalla de inicio y abre ARI
+            CRAFT desde su icono para aprovechar más pantalla.
+          </p>
+        </div>
         <footer>
           <span>HECHO PARA IMAGINAR</span><span>FÚTBOL · PRÓXIMAMENTE ↗</span>
         </footer>
@@ -125,6 +167,27 @@
       <div class="world-caption">
         <span class="status-dot"></span> VALLE DE ARI
         <small>SEMILLA 24092026 · MUNDO 01</small>
+      </div>
+    </section>
+    <section
+      id="rotatePrompt"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="rotateTitle"
+      hidden
+    >
+      <div>
+        <span class="rotate-phone" aria-hidden="true">▯ ↻ ▭</span>
+        <h2 id="rotateTitle">Gira el móvil</h2>
+        <p>
+          En horizontal verás más mundo<br />y tendrás espacio para los
+          controles.
+        </p>
+        <p class="rotate-reminder">
+          Si no gira, desactiva el bloqueo de orientación.
+        </p>
+        <button id="portraitButton" class="primary">Jugar en vertical</button
+        ><button id="rotateBack" class="secondary">Volver al menú</button>
       </div>
     </section>
     <div id="toast" role="status" hidden></div>
