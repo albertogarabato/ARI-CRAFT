@@ -1,128 +1,562 @@
+/* =========================================================
+   ARI CRAFT · v0.3
+   Google Login + Cloud Save + Desktop + Mobile
+   ========================================================= */
+
 import * as THREE from 'three';
-import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+import {
+    PointerLockControls
+} from 'three/addons/controls/PointerLockControls.js';
+
 
 /* =========================================================
-   ARI CRAFT · v0.2 MOBILE
+   FIREBASE
+   ========================================================= */
+
+import {
+    initializeApp
+} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
+
+import {
+    getAuth,
+    GoogleAuthProvider,
+    signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
+    onAuthStateChanged,
+    setPersistence,
+    browserLocalPersistence
+} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
+
+import {
+    getFirestore,
+    doc,
+    getDoc,
+    setDoc,
+    serverTimestamp
+} from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+
+
+/* ---------- CONFIGURACIÓN FIREBASE ---------- */
+
+const firebaseConfig = {
+
+    apiKey:
+        "AIzaSyDFe32AgdruOh_sUn8_05NGAF2NDItP5jU",
+
+    authDomain:
+        "ari-craft.firebaseapp.com",
+
+    projectId:
+        "ari-craft",
+
+    storageBucket:
+        "ari-craft.firebasestorage.app",
+
+    messagingSenderId:
+        "787816491408",
+
+    appId:
+        "1:787816491408:web:7872b943b9540df6992b15"
+};
+
+
+/* ---------- INICIAR FIREBASE ---------- */
+
+const firebaseApp =
+    initializeApp(firebaseConfig);
+
+const auth =
+    getAuth(firebaseApp);
+
+const db =
+    getFirestore(firebaseApp);
+
+const googleProvider =
+    new GoogleAuthProvider();
+
+googleProvider.setCustomParameters({
+    prompt: 'select_account'
+});
+
+
+/* =========================================================
+   DISPOSITIVO
    ========================================================= */
 
 const isTouch =
-    matchMedia('(hover: none) and (pointer: coarse)').matches ||
+    matchMedia(
+        '(hover: none) and (pointer: coarse)'
+    ).matches ||
     navigator.maxTouchPoints > 0;
 
-/* ---------- ESCENA ---------- */
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x82c9ee);
-scene.fog = new THREE.Fog(0x82c9ee, 35, 100);
+/* =========================================================
+   ELEMENTOS DE INTERFAZ
+   ========================================================= */
 
-const camera = new THREE.PerspectiveCamera(
-    72,
-    innerWidth / innerHeight,
-    0.1,
-    160
+const startScreen =
+    document.querySelector('#start');
+
+const googleLoginButton =
+    document.querySelector('#googleLoginButton');
+
+const playerInfo =
+    document.querySelector('#playerInfo');
+
+const playerName =
+    document.querySelector('#playerName');
+
+const startButton =
+    document.querySelector('#startButton');
+
+
+/* =========================================================
+   USUARIO
+   ========================================================= */
+
+let currentUser = null;
+let worldLoaded = false;
+
+
+/* =========================================================
+   LOGIN GOOGLE
+   ========================================================= */
+
+async function loginWithGoogle() {
+
+    googleLoginButton.disabled = true;
+
+    googleLoginButton.textContent =
+        'CONECTANDO...';
+
+    try {
+
+        /*
+         * En móvil usamos redirect.
+         * En ordenador usamos popup.
+         */
+
+        if (isTouch) {
+
+            await signInWithRedirect(
+                auth,
+                googleProvider
+            );
+
+        } else {
+
+            await signInWithPopup(
+                auth,
+                googleProvider
+            );
+        }
+
+    } catch (error) {
+
+        console.error(
+            'Error Google Login:',
+            error
+        );
+
+        googleLoginButton.disabled = false;
+
+        googleLoginButton.textContent =
+            '🔐 ENTRAR CON GOOGLE';
+
+        alert(
+            'No se pudo iniciar sesión con Google.'
+        );
+    }
+}
+
+
+googleLoginButton.addEventListener(
+    'click',
+    loginWithGoogle
 );
 
-camera.position.set(0, 2.2, 10);
 
-const renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    powerPreference: 'high-performance'
+/* ---------- PERSISTENCIA LOGIN ---------- */
+
+setPersistence(
+    auth,
+    browserLocalPersistence
+).catch(error => {
+
+    console.error(
+        'Error persistencia:',
+        error
+    );
 });
 
-renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
 
-document.querySelector('#game').appendChild(renderer.domElement);
+/* ---------- RESULTADO REDIRECT ---------- */
 
-/* ---------- ILUMINACIÓN ---------- */
+getRedirectResult(auth)
+    .catch(error => {
 
-scene.add(
-    new THREE.HemisphereLight(0xdff4ff, 0x557744, 2.1)
+        console.error(
+            'Error redirect Google:',
+            error
+        );
+    });
+
+
+/* ---------- CAMBIO DE USUARIO ---------- */
+
+onAuthStateChanged(
+    auth,
+    async user => {
+
+        if (!user) {
+
+            currentUser = null;
+
+            googleLoginButton.style.display =
+                'block';
+
+            googleLoginButton.disabled =
+                false;
+
+            googleLoginButton.textContent =
+                '🔐 ENTRAR CON GOOGLE';
+
+            playerInfo.style.display =
+                'none';
+
+            return;
+        }
+
+
+        currentUser = user;
+
+
+        /* Nombre del jugador */
+
+        const name =
+            user.displayName
+                ? user.displayName.split(' ')[0]
+                : 'Jugador';
+
+
+        playerName.textContent =
+            name;
+
+
+        googleLoginButton.style.display =
+            'none';
+
+        playerInfo.style.display =
+            'block';
+
+
+        /*
+         * Cargar mundo guardado.
+         */
+
+        if (!worldLoaded) {
+
+            await loadWorld();
+
+            worldLoaded = true;
+        }
+    }
 );
 
-const sun = new THREE.DirectionalLight(0xffffff, 2.3);
-sun.position.set(25, 40, 15);
+
+/* =========================================================
+   ESCENA
+   ========================================================= */
+
+const scene =
+    new THREE.Scene();
+
+scene.background =
+    new THREE.Color(0x82c9ee);
+
+scene.fog =
+    new THREE.Fog(
+        0x82c9ee,
+        35,
+        100
+    );
+
+
+const camera =
+    new THREE.PerspectiveCamera(
+        72,
+        innerWidth / innerHeight,
+        0.1,
+        160
+    );
+
+camera.position.set(
+    0,
+    2.2,
+    10
+);
+
+
+const renderer =
+    new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: 'high-performance'
+    });
+
+renderer.setSize(
+    innerWidth,
+    innerHeight
+);
+
+renderer.setPixelRatio(
+    Math.min(
+        devicePixelRatio,
+        2
+    )
+);
+
+renderer.shadowMap.enabled =
+    true;
+
+document
+    .querySelector('#game')
+    .appendChild(
+        renderer.domElement
+    );
+
+
+/* =========================================================
+   ILUMINACIÓN
+   ========================================================= */
+
+scene.add(
+    new THREE.HemisphereLight(
+        0xdff4ff,
+        0x557744,
+        2.1
+    )
+);
+
+
+const sun =
+    new THREE.DirectionalLight(
+        0xffffff,
+        2.3
+    );
+
+sun.position.set(
+    25,
+    40,
+    15
+);
+
 sun.castShadow = true;
+
 scene.add(sun);
 
-/* ---------- MATERIALES ---------- */
 
-const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
+/* =========================================================
+   MATERIALES
+   ========================================================= */
+
+const blockGeometry =
+    new THREE.BoxGeometry(
+        1,
+        1,
+        1
+    );
+
 
 const materials = [
-    new THREE.MeshLambertMaterial({ color: 0x58a936 }), // césped
-    new THREE.MeshLambertMaterial({ color: 0xb35c38 }), // ladrillo
-    new THREE.MeshLambertMaterial({ color: 0x777a7d }), // piedra
-    new THREE.MeshLambertMaterial({ color: 0xe2b735 }), // amarillo
-    new THREE.MeshLambertMaterial({ color: 0x8b572a }), // madera
-    new THREE.MeshLambertMaterial({ color: 0x3d8d38 })  // hojas
+
+    new THREE.MeshLambertMaterial({
+        color: 0x58a936
+    }),
+
+    new THREE.MeshLambertMaterial({
+        color: 0xb35c38
+    }),
+
+    new THREE.MeshLambertMaterial({
+        color: 0x777a7d
+    }),
+
+    new THREE.MeshLambertMaterial({
+        color: 0xe2b735
+    }),
+
+    new THREE.MeshLambertMaterial({
+        color: 0x8b572a
+    }),
+
+    new THREE.MeshLambertMaterial({
+        color: 0x3d8d38
+    })
+
 ];
+
 
 const blocks = [];
 
-function createBlock(x, y, z, type = 0, removable = true) {
 
-    const block = new THREE.Mesh(
-        blockGeometry,
-        materials[type]
+/*
+ * Los bloques creados por el jugador
+ * se guardan independientemente.
+ */
+
+const playerBlocks = [];
+
+
+/* =========================================================
+   CREAR BLOQUE
+   ========================================================= */
+
+function createBlock(
+    x,
+    y,
+    z,
+    type = 0,
+    removable = true,
+    createdByPlayer = false
+) {
+
+    const block =
+        new THREE.Mesh(
+            blockGeometry,
+            materials[type]
+        );
+
+    block.position.set(
+        x,
+        y,
+        z
     );
 
-    block.position.set(x, y, z);
-    block.userData.type = type;
-    block.userData.removable = removable;
+    block.userData.type =
+        type;
 
-    block.castShadow = true;
-    block.receiveShadow = true;
+    block.userData.removable =
+        removable;
+
+    block.userData.createdByPlayer =
+        createdByPlayer;
+
+    block.castShadow =
+        true;
+
+    block.receiveShadow =
+        true;
 
     scene.add(block);
+
     blocks.push(block);
+
+
+    if (createdByPlayer) {
+
+        playerBlocks.push(block);
+    }
+
 
     return block;
 }
 
+
 /* =========================================================
-   MUNDO
+   MUNDO BASE
    ========================================================= */
 
-/* Suelo */
+/*
+ * IMPORTANTE:
+ *
+ * El mundo base es ahora determinista.
+ * Quitamos terreno aleatorio para que
+ * sea exactamente igual en todos los
+ * dispositivos.
+ */
 
-for (let x = -20; x <= 20; x++) {
+for (
+    let x = -20;
+    x <= 20;
+    x++
+) {
 
-    for (let z = -20; z <= 20; z++) {
+    for (
+        let z = -20;
+        z <= 20;
+        z++
+    ) {
 
-        createBlock(x, 0, z, 0, false);
-
-        /* pequeñas variaciones del terreno */
-
-        if (
-            Math.abs(x) > 10 &&
-            Math.abs(z) > 9 &&
-            Math.random() > .94
-        ) {
-            createBlock(x, 1, z, 0);
-        }
+        createBlock(
+            x,
+            0,
+            z,
+            0,
+            false,
+            false
+        );
     }
 }
 
-/* ---------- ÁRBOLES ---------- */
+
+/* =========================================================
+   ÁRBOLES
+   ========================================================= */
 
 function createTree(x, z) {
 
-    createBlock(x, 1, z, 4);
-    createBlock(x, 2, z, 4);
-    createBlock(x, 3, z, 4);
+    createBlock(
+        x, 1, z,
+        4, true, false
+    );
 
-    for (let dx = -1; dx <= 1; dx++) {
+    createBlock(
+        x, 2, z,
+        4, true, false
+    );
 
-        for (let dz = -1; dz <= 1; dz++) {
+    createBlock(
+        x, 3, z,
+        4, true, false
+    );
 
-            createBlock(x + dx, 4, z + dz, 5);
+
+    for (
+        let dx = -1;
+        dx <= 1;
+        dx++
+    ) {
+
+        for (
+            let dz = -1;
+            dz <= 1;
+            dz++
+        ) {
+
+            createBlock(
+                x + dx,
+                4,
+                z + dz,
+                5,
+                true,
+                false
+            );
         }
     }
 
-    createBlock(x, 5, z, 5);
+
+    createBlock(
+        x,
+        5,
+        z,
+        5,
+        true,
+        false
+    );
 }
+
 
 [
     [-14,-13],
@@ -131,94 +565,194 @@ function createTree(x, z) {
     [15,8],
     [-12,13],
     [12,14]
-].forEach(([x,z]) => createTree(x,z));
+
+].forEach(
+    ([x,z]) =>
+        createTree(x,z)
+);
+
 
 /* =========================================================
    CAMPO DE FÚTBOL
    ========================================================= */
 
-const white = new THREE.MeshLambertMaterial({
-    color: 0xffffff
-});
+const white =
+    new THREE.MeshLambertMaterial({
+        color: 0xffffff
+    });
 
-function beam(x,y,z,sx,sy,sz) {
 
-    const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(sx,sy,sz),
-        white
+function beam(
+    x,
+    y,
+    z,
+    sx,
+    sy,
+    sz
+) {
+
+    const mesh =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                sx,
+                sy,
+                sz
+            ),
+            white
+        );
+
+    mesh.position.set(
+        x,
+        y,
+        z
     );
 
-    mesh.position.set(x,y,z);
-    mesh.castShadow = true;
+    mesh.castShadow =
+        true;
 
     scene.add(mesh);
 
     return mesh;
 }
 
-/* Portería */
 
-beam(-3,1.5,-13,.22,3,.22);
-beam(3,1.5,-13,.22,3,.22);
-beam(0,3,-13,6.2,.22,.22);
+/* ---------- PORTERÍA ---------- */
 
-/* Línea de gol */
+beam(
+    -3,1.5,-13,
+    .22,3,.22
+);
 
-for(let x=-4; x<=4; x++) {
+beam(
+    3,1.5,-13,
+    .22,3,.22
+);
 
-    const line = new THREE.Mesh(
-        new THREE.BoxGeometry(.8,.025,.15),
-        white
+beam(
+    0,3,-13,
+    6.2,.22,.22
+);
+
+
+/* ---------- LÍNEA DE GOL ---------- */
+
+for (
+    let x = -4;
+    x <= 4;
+    x++
+) {
+
+    const line =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                .8,
+                .025,
+                .15
+            ),
+            white
+        );
+
+    line.position.set(
+        x,
+        .52,
+        -10
     );
 
-    line.position.set(x,.52,-10);
     scene.add(line);
 }
 
-/* ---------- BALÓN ---------- */
 
-const ball = new THREE.Mesh(
-    new THREE.SphereGeometry(.42,24,24),
-    new THREE.MeshLambertMaterial({
-        color: 0xf5f5f5
-    })
+/* =========================================================
+   BALÓN
+   ========================================================= */
+
+const ball =
+    new THREE.Mesh(
+
+        new THREE.SphereGeometry(
+            .42,
+            24,
+            24
+        ),
+
+        new THREE.MeshLambertMaterial({
+            color: 0xf5f5f5
+        })
+    );
+
+
+ball.position.set(
+    0,
+    .95,
+    -5
 );
 
-ball.position.set(0,.95,-5);
-
-ball.castShadow = true;
+ball.castShadow =
+    true;
 
 scene.add(ball);
 
-let ballVelocity = new THREE.Vector3();
+
+let ballVelocity =
+    new THREE.Vector3();
+
 
 /* =========================================================
    CONTROLES DESKTOP
    ========================================================= */
 
 const desktopControls =
-    new PointerLockControls(camera, document.body);
+    new PointerLockControls(
+        camera,
+        document.body
+    );
+
 
 const keys = {};
 
-document.addEventListener('keydown', e => {
 
-    keys[e.code] = true;
+document.addEventListener(
+    'keydown',
+    e => {
 
-    if (e.code === 'Space') {
-        jump();
+        keys[e.code] =
+            true;
+
+
+        if (
+            e.code === 'Space'
+        ) {
+
+            jump();
+        }
+
+
+        const n =
+            Number(e.key);
+
+
+        if (
+            n >= 1 &&
+            n <= 4
+        ) {
+
+            selectBlock(
+                n - 1
+            );
+        }
     }
+);
 
-    const n = Number(e.key);
 
-    if (n >= 1 && n <= 4) {
-        selectBlock(n - 1);
+document.addEventListener(
+    'keyup',
+    e => {
+
+        keys[e.code] =
+            false;
     }
-});
+);
 
-document.addEventListener('keyup', e => {
-    keys[e.code] = false;
-});
 
 /* =========================================================
    CÁMARA MÓVIL
@@ -227,127 +761,257 @@ document.addEventListener('keyup', e => {
 let yaw = 0;
 let pitch = 0;
 
-const lookZone = document.querySelector('#lookZone');
 
-let lookPointer = null;
+const lookZone =
+    document.querySelector(
+        '#lookZone'
+    );
+
+
+let lookPointer =
+    null;
+
 let lastLookX = 0;
 let lastLookY = 0;
 
-lookZone.addEventListener('pointerdown', e => {
 
-    if (!isTouch) return;
+lookZone.addEventListener(
+    'pointerdown',
+    e => {
 
-    lookPointer = e.pointerId;
+        if (!isTouch) return;
 
-    lastLookX = e.clientX;
-    lastLookY = e.clientY;
+        lookPointer =
+            e.pointerId;
 
-    lookZone.setPointerCapture(e.pointerId);
-});
+        lastLookX =
+            e.clientX;
 
-lookZone.addEventListener('pointermove', e => {
+        lastLookY =
+            e.clientY;
 
-    if (e.pointerId !== lookPointer) return;
+        lookZone.setPointerCapture(
+            e.pointerId
+        );
+    }
+);
 
-    const dx = e.clientX - lastLookX;
-    const dy = e.clientY - lastLookY;
 
-    lastLookX = e.clientX;
-    lastLookY = e.clientY;
+lookZone.addEventListener(
+    'pointermove',
+    e => {
 
-    yaw -= dx * .004;
-    pitch -= dy * .004;
+        if (
+            e.pointerId !==
+            lookPointer
+        ) return;
 
-    pitch = THREE.MathUtils.clamp(
-        pitch,
-        -Math.PI / 2.1,
-        Math.PI / 2.1
-    );
 
-    camera.rotation.order = 'YXZ';
+        const dx =
+            e.clientX -
+            lastLookX;
 
-    camera.rotation.y = yaw;
-    camera.rotation.x = pitch;
-});
+        const dy =
+            e.clientY -
+            lastLookY;
+
+
+        lastLookX =
+            e.clientX;
+
+        lastLookY =
+            e.clientY;
+
+
+        yaw -=
+            dx * .004;
+
+        pitch -=
+            dy * .004;
+
+
+        pitch =
+            THREE.MathUtils.clamp(
+                pitch,
+                -Math.PI / 2.1,
+                Math.PI / 2.1
+            );
+
+
+        camera.rotation.order =
+            'YXZ';
+
+        camera.rotation.y =
+            yaw;
+
+        camera.rotation.x =
+            pitch;
+    }
+);
+
 
 function endLook(e) {
 
-    if (e.pointerId === lookPointer) {
-        lookPointer = null;
+    if (
+        e.pointerId ===
+        lookPointer
+    ) {
+
+        lookPointer =
+            null;
     }
 }
 
-lookZone.addEventListener('pointerup', endLook);
-lookZone.addEventListener('pointercancel', endLook);
+
+lookZone.addEventListener(
+    'pointerup',
+    endLook
+);
+
+lookZone.addEventListener(
+    'pointercancel',
+    endLook
+);
+
 
 /* =========================================================
    JOYSTICK
    ========================================================= */
 
-const joystick = document.querySelector('#joystickZone');
-const stick = document.querySelector('#joystickStick');
+const joystick =
+    document.querySelector(
+        '#joystickZone'
+    );
 
-let joystickPointer = null;
+const stick =
+    document.querySelector(
+        '#joystickStick'
+    );
+
+
+let joystickPointer =
+    null;
 
 let joyX = 0;
 let joyY = 0;
 
-joystick.addEventListener('pointerdown', e => {
 
-    joystickPointer = e.pointerId;
+joystick.addEventListener(
+    'pointerdown',
+    e => {
 
-    joystick.setPointerCapture(e.pointerId);
+        joystickPointer =
+            e.pointerId;
 
-    updateJoystick(e);
-});
+        joystick.setPointerCapture(
+            e.pointerId
+        );
 
-joystick.addEventListener('pointermove', e => {
+        updateJoystick(e);
+    }
+);
 
-    if (e.pointerId !== joystickPointer) return;
 
-    updateJoystick(e);
-});
+joystick.addEventListener(
+    'pointermove',
+    e => {
+
+        if (
+            e.pointerId !==
+            joystickPointer
+        ) return;
+
+        updateJoystick(e);
+    }
+);
+
 
 function updateJoystick(e) {
 
-    const rect = joystick.getBoundingClientRect();
+    const rect =
+        joystick.getBoundingClientRect();
 
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
 
-    let dx = e.clientX - cx;
-    let dy = e.clientY - cy;
+    const cx =
+        rect.left +
+        rect.width / 2;
 
-    const radius = rect.width * .32;
+    const cy =
+        rect.top +
+        rect.height / 2;
 
-    const distance = Math.hypot(dx,dy);
 
-    if (distance > radius) {
+    let dx =
+        e.clientX - cx;
 
-        dx = dx / distance * radius;
-        dy = dy / distance * radius;
+    let dy =
+        e.clientY - cy;
+
+
+    const radius =
+        rect.width * .32;
+
+
+    const distance =
+        Math.hypot(
+            dx,
+            dy
+        );
+
+
+    if (
+        distance >
+        radius
+    ) {
+
+        dx =
+            dx /
+            distance *
+            radius;
+
+        dy =
+            dy /
+            distance *
+            radius;
     }
 
-    joyX = dx / radius;
-    joyY = dy / radius;
+
+    joyX =
+        dx / radius;
+
+    joyY =
+        dy / radius;
+
 
     stick.style.transform =
         `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
 }
 
+
 function resetJoystick() {
 
-    joystickPointer = null;
+    joystickPointer =
+        null;
 
     joyX = 0;
     joyY = 0;
+
 
     stick.style.transform =
         'translate(-50%, -50%)';
 }
 
-joystick.addEventListener('pointerup', resetJoystick);
-joystick.addEventListener('pointercancel', resetJoystick);
+
+joystick.addEventListener(
+    'pointerup',
+    resetJoystick
+);
+
+joystick.addEventListener(
+    'pointercancel',
+    resetJoystick
+);
+
 
 /* =========================================================
    SALTO
@@ -356,155 +1020,358 @@ joystick.addEventListener('pointercancel', resetJoystick);
 let verticalVelocity = 0;
 let grounded = true;
 
+
 function jump() {
 
     if (!grounded) return;
 
-    verticalVelocity = 7;
-    grounded = false;
+    verticalVelocity =
+        7;
+
+    grounded =
+        false;
 }
 
-document.querySelector('#jumpButton')
-    .addEventListener('pointerdown', e => {
 
-        e.preventDefault();
-        jump();
-    });
+document
+    .querySelector('#jumpButton')
+    .addEventListener(
+        'pointerdown',
+        e => {
+
+            e.preventDefault();
+
+            jump();
+        }
+    );
+
 
 /* =========================================================
-   BLOQUES
+   SELECCIÓN DE BLOQUES
    ========================================================= */
 
 let selectedType = 0;
 
+
 function selectBlock(index) {
 
-    selectedType = index;
+    selectedType =
+        index;
 
-    document.querySelectorAll('.slot')
-        .forEach((slot,i) => {
 
-            slot.classList.toggle(
-                'active',
-                i === selectedType
-            );
-        });
+    document
+        .querySelectorAll('.slot')
+        .forEach(
+            (slot,i) => {
+
+                slot.classList.toggle(
+                    'active',
+                    i === selectedType
+                );
+            }
+        );
 }
 
-document.querySelectorAll('.slot')
-    .forEach((slot,index) => {
 
-        slot.addEventListener('pointerdown', e => {
+document
+    .querySelectorAll('.slot')
+    .forEach(
+        (slot,index) => {
 
-            e.preventDefault();
-            e.stopPropagation();
+            slot.addEventListener(
+                'pointerdown',
+                e => {
 
-            selectBlock(index);
-        });
-    });
+                    e.preventDefault();
+                    e.stopPropagation();
 
-/* ---------- RAYCAST ---------- */
+                    selectBlock(
+                        index
+                    );
+                }
+            );
+        }
+    );
 
-const raycaster = new THREE.Raycaster();
+
+/* =========================================================
+   RAYCAST
+   ========================================================= */
+
+const raycaster =
+    new THREE.Raycaster();
+
+
+/*
+ * No permitimos construir o romper
+ * desde una distancia absurda.
+ */
+
+raycaster.far = 6;
+
 
 function getTarget() {
 
     raycaster.setFromCamera(
-        new THREE.Vector2(0,0),
+        new THREE.Vector2(
+            0,
+            0
+        ),
         camera
     );
 
-    const hits =
-        raycaster.intersectObjects(blocks,false);
 
-    return hits.length ? hits[0] : null;
+    const hits =
+        raycaster.intersectObjects(
+            blocks,
+            false
+        );
+
+
+    return hits.length
+        ? hits[0]
+        : null;
 }
 
-/* Romper */
+
+/* =========================================================
+   ROMPER BLOQUE
+   ========================================================= */
 
 function breakBlock() {
 
-    const hit = getTarget();
+    const hit =
+        getTarget();
+
 
     if (!hit) return;
 
-    if (!hit.object.userData.removable) {
 
-        showMessage('Ese bloque forma parte del terreno');
+    if (
+        !hit.object
+            .userData
+            .removable
+    ) {
+
+        showMessage(
+            'Ese bloque forma parte del terreno'
+        );
 
         return;
     }
 
-    scene.remove(hit.object);
+
+    /*
+     * Por ahora únicamente guardamos
+     * de forma persistente los bloques
+     * construidos por el jugador.
+     *
+     * Los árboles reaparecen al volver.
+     */
+
+    if (
+        hit.object
+            .userData
+            .createdByPlayer
+    ) {
+
+        const playerIndex =
+            playerBlocks.indexOf(
+                hit.object
+            );
+
+
+        if (
+            playerIndex !== -1
+        ) {
+
+            playerBlocks.splice(
+                playerIndex,
+                1
+            );
+        }
+    }
+
+
+    scene.remove(
+        hit.object
+    );
+
 
     const index =
-        blocks.indexOf(hit.object);
+        blocks.indexOf(
+            hit.object
+        );
 
-    if (index !== -1) {
-        blocks.splice(index,1);
+
+    if (
+        index !== -1
+    ) {
+
+        blocks.splice(
+            index,
+            1
+        );
     }
+
+
+    scheduleSave();
 }
 
-/* Construir */
+
+/* =========================================================
+   CONSTRUIR
+   ========================================================= */
 
 function placeBlock() {
 
-    const hit = getTarget();
+    const hit =
+        getTarget();
+
 
     if (!hit) return;
 
+
     const position =
-        hit.object.position.clone()
-            .add(hit.face.normal);
+        hit.object
+            .position
+            .clone()
+            .add(
+                hit.face.normal
+            );
 
-    /* evitar construir encima del jugador */
 
-    if (
-        position.distanceTo(camera.position) < 1.5
-    ) return;
-
-    createBlock(
+    position.set(
         Math.round(position.x),
         Math.round(position.y),
-        Math.round(position.z),
-        selectedType
+        Math.round(position.z)
     );
+
+
+    /*
+     * Evitar construir encima
+     * del jugador.
+     */
+
+    if (
+        position.distanceTo(
+            camera.position
+        ) < 1.5
+    ) {
+
+        return;
+    }
+
+
+    /*
+     * Evitar bloques duplicados.
+     */
+
+    const exists =
+        blocks.some(
+            block =>
+
+                block.position.x ===
+                    position.x &&
+
+                block.position.y ===
+                    position.y &&
+
+                block.position.z ===
+                    position.z
+        );
+
+
+    if (exists) {
+
+        showMessage(
+            'Ya hay un bloque ahí'
+        );
+
+        return;
+    }
+
+
+    createBlock(
+        position.x,
+        position.y,
+        position.z,
+        selectedType,
+        true,
+        true
+    );
+
+
+    scheduleSave();
 }
 
-/* Desktop mouse */
+
+/* ---------- RATÓN DESKTOP ---------- */
 
 renderer.domElement.addEventListener(
     'mousedown',
     e => {
 
         if (isTouch) return;
-        if (!desktopControls.isLocked) return;
 
-        if (e.button === 0) breakBlock();
-        if (e.button === 2) placeBlock();
+        if (
+            !desktopControls
+                .isLocked
+        ) return;
+
+
+        if (
+            e.button === 0
+        ) {
+
+            breakBlock();
+        }
+
+
+        if (
+            e.button === 2
+        ) {
+
+            placeBlock();
+        }
     }
 );
 
+
 renderer.domElement.addEventListener(
     'contextmenu',
-    e => e.preventDefault()
+    e =>
+        e.preventDefault()
 );
 
-/* Mobile buttons */
 
-document.querySelector('#breakButton')
-    .addEventListener('pointerdown', e => {
+/* ---------- BOTONES MÓVIL ---------- */
 
-        e.preventDefault();
-        breakBlock();
-    });
+document
+    .querySelector('#breakButton')
+    .addEventListener(
+        'pointerdown',
+        e => {
 
-document.querySelector('#placeButton')
-    .addEventListener('pointerdown', e => {
+            e.preventDefault();
 
-        e.preventDefault();
-        placeBlock();
-    });
+            breakBlock();
+        }
+    );
+
+
+document
+    .querySelector('#placeButton')
+    .addEventListener(
+        'pointerdown',
+        e => {
+
+            e.preventDefault();
+
+            placeBlock();
+        }
+    );
+
 
 /* =========================================================
    MENSAJES
@@ -512,47 +1379,352 @@ document.querySelector('#placeButton')
 
 let messageTimer;
 
+
 function showMessage(text) {
 
     const element =
-        document.querySelector('#gameMessage');
+        document.querySelector(
+            '#gameMessage'
+        );
 
-    element.textContent = text;
 
-    element.classList.add('visible');
+    element.textContent =
+        text;
 
-    clearTimeout(messageTimer);
 
-    messageTimer = setTimeout(() => {
+    element.classList.add(
+        'visible'
+    );
 
-        element.classList.remove('visible');
 
-    },1600);
+    clearTimeout(
+        messageTimer
+    );
+
+
+    messageTimer =
+        setTimeout(
+            () => {
+
+                element
+                    .classList
+                    .remove(
+                        'visible'
+                    );
+
+            },
+            1600
+        );
 }
 
+
 /* =========================================================
-   INICIAR
+   GUARDAR PARTIDA
    ========================================================= */
 
-const startScreen =
-    document.querySelector('#start');
+let saveTimer = null;
 
-document.querySelector('#startButton')
-    .addEventListener('click', () => {
 
-        startScreen.style.display = 'none';
+function scheduleSave() {
+
+    if (!currentUser) return;
+
+
+    clearTimeout(
+        saveTimer
+    );
+
+
+    saveTimer =
+        setTimeout(
+            saveWorld,
+            700
+        );
+}
+
+
+async function saveWorld() {
+
+    if (!currentUser) return;
+
+
+    const savedBlocks =
+        playerBlocks.map(
+            block => ({
+
+                x:
+                    block.position.x,
+
+                y:
+                    block.position.y,
+
+                z:
+                    block.position.z,
+
+                type:
+                    block.userData.type
+            })
+        );
+
+
+    const gameData = {
+
+        version: 1,
+
+        player: {
+
+            x:
+                camera.position.x,
+
+            y:
+                camera.position.y,
+
+            z:
+                camera.position.z
+        },
+
+        blocks:
+            savedBlocks,
+
+        updatedAt:
+            serverTimestamp()
+    };
+
+
+    try {
+
+        await setDoc(
+
+            doc(
+                db,
+                'players',
+                currentUser.uid
+            ),
+
+            gameData,
+
+            {
+                merge: true
+            }
+        );
+
+
+        console.log(
+            'ARI CRAFT guardado ☁️'
+        );
+
+    } catch (error) {
+
+        console.error(
+            'Error guardando ARI CRAFT:',
+            error
+        );
+
+
+        showMessage(
+            '⚠️ No se pudo guardar'
+        );
+    }
+}
+
+
+/* =========================================================
+   CARGAR PARTIDA
+   ========================================================= */
+
+async function loadWorld() {
+
+    if (!currentUser) return;
+
+
+    try {
+
+        const playerDocument =
+            await getDoc(
+
+                doc(
+                    db,
+                    'players',
+                    currentUser.uid
+                )
+            );
+
+
+        /*
+         * Primera partida.
+         */
+
+        if (
+            !playerDocument.exists()
+        ) {
+
+            showMessage(
+                '🌍 ¡Bienvenido a tu nuevo mundo!'
+            );
+
+            await saveWorld();
+
+            return;
+        }
+
+
+        const data =
+            playerDocument.data();
+
+
+        /* ---------- POSICIÓN ---------- */
+
+        if (
+            data.player &&
+            Number.isFinite(
+                data.player.x
+            ) &&
+            Number.isFinite(
+                data.player.y
+            ) &&
+            Number.isFinite(
+                data.player.z
+            )
+        ) {
+
+            camera.position.set(
+
+                data.player.x,
+
+                Math.max(
+                    2.2,
+                    data.player.y
+                ),
+
+                data.player.z
+            );
+        }
+
+
+        /* ---------- BLOQUES ---------- */
+
+        if (
+            Array.isArray(
+                data.blocks
+            )
+        ) {
+
+            data.blocks.forEach(
+                savedBlock => {
+
+                    const type =
+                        Number(
+                            savedBlock.type
+                        );
+
+
+                    if (
+                        !Number.isFinite(
+                            savedBlock.x
+                        ) ||
+                        !Number.isFinite(
+                            savedBlock.y
+                        ) ||
+                        !Number.isFinite(
+                            savedBlock.z
+                        ) ||
+                        !Number.isInteger(
+                            type
+                        ) ||
+                        type < 0 ||
+                        type > 3
+                    ) {
+
+                        return;
+                    }
+
+
+                    createBlock(
+
+                        savedBlock.x,
+
+                        savedBlock.y,
+
+                        savedBlock.z,
+
+                        type,
+
+                        true,
+
+                        true
+                    );
+                }
+            );
+        }
+
+
+        showMessage(
+            '☁️ Mundo cargado'
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            'Error cargando ARI CRAFT:',
+            error
+        );
+
+
+        showMessage(
+            '⚠️ No se pudo cargar el mundo'
+        );
+    }
+}
+
+
+/* =========================================================
+   INICIAR JUEGO
+   ========================================================= */
+
+startButton.addEventListener(
+    'click',
+    () => {
+
+        if (!currentUser) {
+
+            showMessage(
+                'Primero entra con Google'
+            );
+
+            return;
+        }
+
+
+        startScreen.style.display =
+            'none';
+
 
         if (!isTouch) {
+
             desktopControls.lock();
         }
-    });
 
-desktopControls.addEventListener('unlock', () => {
 
-    if (!isTouch) {
-        startScreen.style.display = 'grid';
+        scheduleSave();
     }
-});
+);
+
+
+desktopControls.addEventListener(
+    'unlock',
+    () => {
+
+        if (!isTouch) {
+
+            startScreen.style.display =
+                'grid';
+
+            scheduleSave();
+        }
+    }
+);
+
 
 /* =========================================================
    MOVIMIENTO
@@ -563,40 +1735,86 @@ function movePlayer(delta) {
     let forward = 0;
     let right = 0;
 
+
     if (isTouch) {
 
-        forward = -joyY;
-        right = joyX;
+        forward =
+            -joyY;
+
+        right =
+            joyX;
 
     } else {
 
-        if (keys['KeyW']) forward += 1;
-        if (keys['KeyS']) forward -= 1;
+        if (
+            keys['KeyW']
+        ) {
 
-        if (keys['KeyD']) right += 1;
-        if (keys['KeyA']) right -= 1;
+            forward += 1;
+        }
+
+        if (
+            keys['KeyS']
+        ) {
+
+            forward -= 1;
+        }
+
+        if (
+            keys['KeyD']
+        ) {
+
+            right += 1;
+        }
+
+        if (
+            keys['KeyA']
+        ) {
+
+            right -= 1;
+        }
     }
+
 
     const length =
-        Math.hypot(forward,right);
+        Math.hypot(
+            forward,
+            right
+        );
 
-    if (length > 1) {
 
-        forward /= length;
-        right /= length;
+    if (
+        length > 1
+    ) {
+
+        forward /=
+            length;
+
+        right /=
+            length;
     }
 
-    const speed = 6 * delta;
+
+    const speed =
+        6 * delta;
+
 
     if (isTouch) {
 
         const direction =
             new THREE.Vector3();
 
-        camera.getWorldDirection(direction);
 
-        direction.y = 0;
+        camera.getWorldDirection(
+            direction
+        );
+
+
+        direction.y =
+            0;
+
         direction.normalize();
+
 
         const side =
             new THREE.Vector3(
@@ -605,39 +1823,53 @@ function movePlayer(delta) {
                 -direction.x
             );
 
-        camera.position.addScaledVector(
-            direction,
-            forward * speed
-        );
 
-        camera.position.addScaledVector(
-            side,
-            right * speed
-        );
+        camera.position
+            .addScaledVector(
+                direction,
+                forward * speed
+            );
+
+
+        camera.position
+            .addScaledVector(
+                side,
+                right * speed
+            );
 
     } else {
 
-        desktopControls.moveForward(
-            forward * speed
-        );
+        desktopControls
+            .moveForward(
+                forward *
+                speed
+            );
 
-        desktopControls.moveRight(
-            right * speed
-        );
+
+        desktopControls
+            .moveRight(
+                right *
+                speed
+            );
     }
 
-    /* límites mundo */
 
     camera.position.x =
         THREE.MathUtils.clamp(
-            camera.position.x,-19,19
+            camera.position.x,
+            -19,
+            19
         );
+
 
     camera.position.z =
         THREE.MathUtils.clamp(
-            camera.position.z,-19,19
+            camera.position.z,
+            -19,
+            19
         );
 }
+
 
 /* =========================================================
    FÚTBOL
@@ -647,132 +1879,285 @@ function updateBall(delta) {
 
     const playerFlat =
         new THREE.Vector3(
+
             camera.position.x,
+
             ball.position.y,
+
             camera.position.z
         );
 
+
     const distance =
-        playerFlat.distanceTo(ball.position);
-
-    if (distance < 1.35) {
-
-        const direction =
-            ball.position.clone()
-                .sub(playerFlat)
-                .normalize();
-
-        ballVelocity.addScaledVector(
-            direction,
-            4.5 * delta
+        playerFlat.distanceTo(
+            ball.position
         );
-    }
 
-    ball.position.addScaledVector(
-        ballVelocity,
-        delta
-    );
-
-    ballVelocity.multiplyScalar(
-        Math.pow(.965, delta * 60)
-    );
-
-    ball.position.y = .95;
-
-    /* límites */
 
     if (
-        Math.abs(ball.position.x) > 19
+        distance < 1.35
+    ) {
+
+        const direction =
+            ball.position
+                .clone()
+                .sub(
+                    playerFlat
+                )
+                .normalize();
+
+
+        ballVelocity
+            .addScaledVector(
+                direction,
+                4.5 * delta
+            );
+    }
+
+
+    ball.position
+        .addScaledVector(
+            ballVelocity,
+            delta
+        );
+
+
+    ballVelocity
+        .multiplyScalar(
+
+            Math.pow(
+                .965,
+                delta * 60
+            )
+        );
+
+
+    ball.position.y =
+        .95;
+
+
+    /* ---------- LÍMITES ---------- */
+
+    if (
+        Math.abs(
+            ball.position.x
+        ) > 19
     ) {
 
         ball.position.x =
-            Math.sign(ball.position.x) * 19;
+            Math.sign(
+                ball.position.x
+            ) * 19;
 
-        ballVelocity.x *= -.7;
+
+        ballVelocity.x *=
+            -.7;
     }
 
+
     if (
-        Math.abs(ball.position.z) > 19
+        Math.abs(
+            ball.position.z
+        ) > 19
     ) {
 
         ball.position.z =
-            Math.sign(ball.position.z) * 19;
+            Math.sign(
+                ball.position.z
+            ) * 19;
 
-        ballVelocity.z *= -.7;
+
+        ballVelocity.z *=
+            -.7;
     }
 
-    /* GOL */
+
+    /* ---------- GOL ---------- */
 
     if (
-        ball.position.z < -12.7 &&
-        Math.abs(ball.position.x) < 2.8
+
+        ball.position.z <
+            -12.7 &&
+
+        Math.abs(
+            ball.position.x
+        ) < 2.8
+
     ) {
 
-        showMessage('⚽ ¡GOOOOOOL! ⚽');
+        showMessage(
+            '⚽ ¡GOOOOOOL! ⚽'
+        );
 
-        ball.position.set(0,.95,-5);
-        ballVelocity.set(0,0,0);
+
+        ball.position.set(
+            0,
+            .95,
+            -5
+        );
+
+
+        ballVelocity.set(
+            0,
+            0,
+            0
+        );
     }
 }
+
+
+/* =========================================================
+   AUTOGUARDADO
+   ========================================================= */
+
+/*
+ * Además de guardar cuando construimos
+ * o rompemos, guardamos periódicamente
+ * la posición.
+ */
+
+setInterval(
+    () => {
+
+        if (
+            currentUser &&
+            startScreen.style.display ===
+                'none'
+        ) {
+
+            saveWorld();
+        }
+
+    },
+    15000
+);
+
+
+/*
+ * Intentar guardar cuando la página
+ * deja de estar visible.
+ */
+
+document.addEventListener(
+    'visibilitychange',
+    () => {
+
+        if (
+            document.hidden &&
+            currentUser
+        ) {
+
+            saveWorld();
+        }
+    }
+);
+
 
 /* =========================================================
    GAME LOOP
    ========================================================= */
 
-const clock = new THREE.Clock();
+const clock =
+    new THREE.Clock();
+
 
 function animate() {
 
-    requestAnimationFrame(animate);
+    requestAnimationFrame(
+        animate
+    );
+
 
     const delta =
-        Math.min(clock.getDelta(),.05);
+        Math.min(
+            clock.getDelta(),
+            .05
+        );
+
 
     const playing =
+
         isTouch
-        ? startScreen.style.display === 'none'
-        : desktopControls.isLocked;
+
+            ? startScreen
+                .style
+                .display ===
+                'none'
+
+            : desktopControls
+                .isLocked;
+
 
     if (playing) {
 
-        movePlayer(delta);
+        movePlayer(
+            delta
+        );
 
-        /* gravedad */
 
-        verticalVelocity -= 18 * delta;
+        verticalVelocity -=
+            18 * delta;
+
 
         camera.position.y +=
-            verticalVelocity * delta;
+            verticalVelocity *
+            delta;
 
-        if (camera.position.y <= 2.2) {
 
-            camera.position.y = 2.2;
+        if (
+            camera.position.y <=
+            2.2
+        ) {
 
-            verticalVelocity = 0;
-            grounded = true;
+            camera.position.y =
+                2.2;
+
+
+            verticalVelocity =
+                0;
+
+
+            grounded =
+                true;
         }
 
-        updateBall(delta);
+
+        updateBall(
+            delta
+        );
     }
 
-    renderer.render(scene,camera);
+
+    renderer.render(
+        scene,
+        camera
+    );
 }
 
+
 animate();
+
 
 /* =========================================================
    RESIZE
    ========================================================= */
 
-addEventListener('resize', () => {
+addEventListener(
+    'resize',
+    () => {
 
-    camera.aspect =
-        innerWidth / innerHeight;
+        camera.aspect =
+            innerWidth /
+            innerHeight;
 
-    camera.updateProjectionMatrix();
 
-    renderer.setSize(
-        innerWidth,
-        innerHeight
-    );
-});
+        camera
+            .updateProjectionMatrix();
+
+
+        renderer.setSize(
+            innerWidth,
+            innerHeight
+        );
+    }
+);
