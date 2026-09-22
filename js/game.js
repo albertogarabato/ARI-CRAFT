@@ -1,5 +1,5 @@
 /* =========================================================
-   ARI CRAFT · v0.3
+   ARI CRAFT · v0.3.1
    Google Login + Cloud Save + Desktop + Mobile
    ========================================================= */
 
@@ -22,8 +22,6 @@ import {
     getAuth,
     GoogleAuthProvider,
     signInWithPopup,
-    signInWithRedirect,
-    getRedirectResult,
     onAuthStateChanged,
     setPersistence,
     browserLocalPersistence
@@ -38,7 +36,9 @@ import {
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 
 
-/* ---------- CONFIGURACIÓN FIREBASE ---------- */
+/* =========================================================
+   CONFIGURACIÓN FIREBASE
+   ========================================================= */
 
 const firebaseConfig = {
 
@@ -61,8 +61,6 @@ const firebaseConfig = {
         "1:787816491408:web:7872b943b9540df6992b15"
 };
 
-
-/* ---------- INICIAR FIREBASE ---------- */
 
 const firebaseApp =
     initializeApp(firebaseConfig);
@@ -93,7 +91,7 @@ const isTouch =
 
 
 /* =========================================================
-   ELEMENTOS DE INTERFAZ
+   INTERFAZ
    ========================================================= */
 
 const startScreen =
@@ -133,25 +131,14 @@ async function loginWithGoogle() {
 
     try {
 
-        /*
-         * En móvil usamos redirect.
-         * En ordenador usamos popup.
-         */
-
-        if (isTouch) {
-
-            await signInWithRedirect(
-                auth,
-                googleProvider
-            );
-
-        } else {
-
+        const result =
             await signInWithPopup(
                 auth,
                 googleProvider
             );
-        }
+
+        currentUser =
+            result.user;
 
     } catch (error) {
 
@@ -160,14 +147,32 @@ async function loginWithGoogle() {
             error
         );
 
-        googleLoginButton.disabled = false;
+        googleLoginButton.disabled =
+            false;
 
         googleLoginButton.textContent =
             '🔐 ENTRAR CON GOOGLE';
 
-        alert(
-            'No se pudo iniciar sesión con Google.'
-        );
+
+        if (
+            error.code ===
+            'auth/popup-blocked'
+        ) {
+
+            alert(
+                'El navegador ha bloqueado la ventana de Google.\n\nPermite las ventanas emergentes para ARI CRAFT y vuelve a intentarlo.'
+            );
+
+        } else if (
+            error.code !==
+            'auth/popup-closed-by-user'
+        ) {
+
+            alert(
+                'No se pudo iniciar sesión con Google.\n\n' +
+                (error.code || error.message)
+            );
+        }
     }
 }
 
@@ -178,33 +183,26 @@ googleLoginButton.addEventListener(
 );
 
 
-/* ---------- PERSISTENCIA LOGIN ---------- */
+/* =========================================================
+   MANTENER SESIÓN
+   ========================================================= */
 
 setPersistence(
     auth,
     browserLocalPersistence
-).catch(error => {
+)
+.catch(error => {
 
     console.error(
-        'Error persistencia:',
+        'Error manteniendo sesión:',
         error
     );
 });
 
 
-/* ---------- RESULTADO REDIRECT ---------- */
-
-getRedirectResult(auth)
-    .catch(error => {
-
-        console.error(
-            'Error redirect Google:',
-            error
-        );
-    });
-
-
-/* ---------- CAMBIO DE USUARIO ---------- */
+/* =========================================================
+   ESTADO DE AUTENTICACIÓN
+   ========================================================= */
 
 onAuthStateChanged(
     auth,
@@ -212,7 +210,11 @@ onAuthStateChanged(
 
         if (!user) {
 
-            currentUser = null;
+            currentUser =
+                null;
+
+            worldLoaded =
+                false;
 
             googleLoginButton.style.display =
                 'block';
@@ -230,10 +232,9 @@ onAuthStateChanged(
         }
 
 
-        currentUser = user;
+        currentUser =
+            user;
 
-
-        /* Nombre del jugador */
 
         const name =
             user.displayName
@@ -252,15 +253,12 @@ onAuthStateChanged(
             'block';
 
 
-        /*
-         * Cargar mundo guardado.
-         */
-
         if (!worldLoaded) {
 
             await loadWorld();
 
-            worldLoaded = true;
+            worldLoaded =
+                true;
         }
     }
 );
@@ -274,7 +272,9 @@ const scene =
     new THREE.Scene();
 
 scene.background =
-    new THREE.Color(0x82c9ee);
+    new THREE.Color(
+        0x82c9ee
+    );
 
 scene.fog =
     new THREE.Fog(
@@ -302,8 +302,10 @@ camera.position.set(
 const renderer =
     new THREE.WebGLRenderer({
         antialias: true,
-        powerPreference: 'high-performance'
+        powerPreference:
+            'high-performance'
     });
+
 
 renderer.setSize(
     innerWidth,
@@ -319,6 +321,7 @@ renderer.setPixelRatio(
 
 renderer.shadowMap.enabled =
     true;
+
 
 document
     .querySelector('#game')
@@ -352,13 +355,14 @@ sun.position.set(
     15
 );
 
-sun.castShadow = true;
+sun.castShadow =
+    true;
 
 scene.add(sun);
 
 
 /* =========================================================
-   MATERIALES
+   BLOQUES Y MATERIALES
    ========================================================= */
 
 const blockGeometry =
@@ -399,13 +403,6 @@ const materials = [
 
 
 const blocks = [];
-
-
-/*
- * Los bloques creados por el jugador
- * se guardan independientemente.
- */
-
 const playerBlocks = [];
 
 
@@ -428,11 +425,13 @@ function createBlock(
             materials[type]
         );
 
+
     block.position.set(
         x,
         y,
         z
     );
+
 
     block.userData.type =
         type;
@@ -443,11 +442,13 @@ function createBlock(
     block.userData.createdByPlayer =
         createdByPlayer;
 
+
     block.castShadow =
         true;
 
     block.receiveShadow =
         true;
+
 
     scene.add(block);
 
@@ -456,7 +457,9 @@ function createBlock(
 
     if (createdByPlayer) {
 
-        playerBlocks.push(block);
+        playerBlocks.push(
+            block
+        );
     }
 
 
@@ -465,17 +468,8 @@ function createBlock(
 
 
 /* =========================================================
-   MUNDO BASE
+   TERRENO
    ========================================================= */
-
-/*
- * IMPORTANTE:
- *
- * El mundo base es ahora determinista.
- * Quitamos terreno aleatorio para que
- * sea exactamente igual en todos los
- * dispositivos.
- */
 
 for (
     let x = -20;
@@ -508,18 +502,18 @@ for (
 function createTree(x, z) {
 
     createBlock(
-        x, 1, z,
-        4, true, false
+        x,1,z,
+        4,true,false
     );
 
     createBlock(
-        x, 2, z,
-        4, true, false
+        x,2,z,
+        4,true,false
     );
 
     createBlock(
-        x, 3, z,
-        4, true, false
+        x,3,z,
+        4,true,false
     );
 
 
@@ -573,7 +567,7 @@ function createTree(x, z) {
 
 
 /* =========================================================
-   CAMPO DE FÚTBOL
+   FÚTBOL
    ========================================================= */
 
 const white =
@@ -583,28 +577,25 @@ const white =
 
 
 function beam(
-    x,
-    y,
-    z,
-    sx,
-    sy,
-    sz
+    x,y,z,
+    sx,sy,sz
 ) {
 
     const mesh =
         new THREE.Mesh(
+
             new THREE.BoxGeometry(
                 sx,
                 sy,
                 sz
             ),
+
             white
         );
 
+
     mesh.position.set(
-        x,
-        y,
-        z
+        x,y,z
     );
 
     mesh.castShadow =
@@ -616,7 +607,7 @@ function beam(
 }
 
 
-/* ---------- PORTERÍA ---------- */
+/* Portería */
 
 beam(
     -3,1.5,-13,
@@ -634,7 +625,7 @@ beam(
 );
 
 
-/* ---------- LÍNEA DE GOL ---------- */
+/* Línea */
 
 for (
     let x = -4;
@@ -644,13 +635,16 @@ for (
 
     const line =
         new THREE.Mesh(
+
             new THREE.BoxGeometry(
                 .8,
                 .025,
                 .15
             ),
+
             white
         );
+
 
     line.position.set(
         x,
@@ -698,7 +692,7 @@ let ballVelocity =
 
 
 /* =========================================================
-   CONTROLES DESKTOP
+   DESKTOP
    ========================================================= */
 
 const desktopControls =
@@ -781,6 +775,7 @@ lookZone.addEventListener(
 
         if (!isTouch) return;
 
+
         lookPointer =
             e.pointerId;
 
@@ -789,6 +784,7 @@ lookZone.addEventListener(
 
         lastLookY =
             e.clientY;
+
 
         lookZone.setPointerCapture(
             e.pointerId
@@ -903,9 +899,11 @@ joystick.addEventListener(
         joystickPointer =
             e.pointerId;
 
+
         joystick.setPointerCapture(
             e.pointerId
         );
+
 
         updateJoystick(e);
     }
@@ -921,6 +919,7 @@ joystick.addEventListener(
             joystickPointer
         ) return;
 
+
         updateJoystick(e);
     }
 );
@@ -929,7 +928,8 @@ joystick.addEventListener(
 function updateJoystick(e) {
 
     const rect =
-        joystick.getBoundingClientRect();
+        joystick
+            .getBoundingClientRect();
 
 
     const cx =
@@ -1025,6 +1025,7 @@ function jump() {
 
     if (!grounded) return;
 
+
     verticalVelocity =
         7;
 
@@ -1047,7 +1048,7 @@ document
 
 
 /* =========================================================
-   SELECCIÓN DE BLOQUES
+   HOTBAR
    ========================================================= */
 
 let selectedType = 0;
@@ -1101,13 +1102,8 @@ document
 const raycaster =
     new THREE.Raycaster();
 
-
-/*
- * No permitimos construir o romper
- * desde una distancia absurda.
- */
-
-raycaster.far = 6;
+raycaster.far =
+    6;
 
 
 function getTarget() {
@@ -1135,7 +1131,7 @@ function getTarget() {
 
 
 /* =========================================================
-   ROMPER BLOQUE
+   ROMPER
    ========================================================= */
 
 function breakBlock() {
@@ -1160,14 +1156,6 @@ function breakBlock() {
         return;
     }
 
-
-    /*
-     * Por ahora únicamente guardamos
-     * de forma persistente los bloques
-     * construidos por el jugador.
-     *
-     * Los árboles reaparecen al volver.
-     */
 
     if (
         hit.object
@@ -1248,11 +1236,6 @@ function placeBlock() {
     );
 
 
-    /*
-     * Evitar construir encima
-     * del jugador.
-     */
-
     if (
         position.distanceTo(
             camera.position
@@ -1262,10 +1245,6 @@ function placeBlock() {
         return;
     }
 
-
-    /*
-     * Evitar bloques duplicados.
-     */
 
     const exists =
         blocks.some(
@@ -1306,7 +1285,9 @@ function placeBlock() {
 }
 
 
-/* ---------- RATÓN DESKTOP ---------- */
+/* =========================================================
+   RATÓN
+   ========================================================= */
 
 renderer.domElement.addEventListener(
     'mousedown',
@@ -1345,7 +1326,9 @@ renderer.domElement.addEventListener(
 );
 
 
-/* ---------- BOTONES MÓVIL ---------- */
+/* =========================================================
+   BOTONES MÓVILES
+   ========================================================= */
 
 document
     .querySelector('#breakButton')
@@ -1419,7 +1402,7 @@ function showMessage(text) {
 
 
 /* =========================================================
-   GUARDAR PARTIDA
+   GUARDAR
    ========================================================= */
 
 let saveTimer = null;
@@ -1513,10 +1496,11 @@ async function saveWorld() {
             'ARI CRAFT guardado ☁️'
         );
 
+
     } catch (error) {
 
         console.error(
-            'Error guardando ARI CRAFT:',
+            'Error guardando:',
             error
         );
 
@@ -1529,7 +1513,7 @@ async function saveWorld() {
 
 
 /* =========================================================
-   CARGAR PARTIDA
+   CARGAR
    ========================================================= */
 
 async function loadWorld() {
@@ -1550,10 +1534,6 @@ async function loadWorld() {
             );
 
 
-        /*
-         * Primera partida.
-         */
-
         if (
             !playerDocument.exists()
         ) {
@@ -1561,6 +1541,7 @@ async function loadWorld() {
             showMessage(
                 '🌍 ¡Bienvenido a tu nuevo mundo!'
             );
+
 
             await saveWorld();
 
@@ -1572,7 +1553,7 @@ async function loadWorld() {
             playerDocument.data();
 
 
-        /* ---------- POSICIÓN ---------- */
+        /* POSICIÓN */
 
         if (
             data.player &&
@@ -1601,7 +1582,7 @@ async function loadWorld() {
         }
 
 
-        /* ---------- BLOQUES ---------- */
+        /* BLOQUES */
 
         if (
             Array.isArray(
@@ -1639,20 +1620,38 @@ async function loadWorld() {
                     }
 
 
-                    createBlock(
+                    const exists =
+                        blocks.some(
+                            block =>
 
-                        savedBlock.x,
+                                block.position.x ===
+                                    savedBlock.x &&
 
-                        savedBlock.y,
+                                block.position.y ===
+                                    savedBlock.y &&
 
-                        savedBlock.z,
+                                block.position.z ===
+                                    savedBlock.z
+                        );
 
-                        type,
 
-                        true,
+                    if (!exists) {
 
-                        true
-                    );
+                        createBlock(
+
+                            savedBlock.x,
+
+                            savedBlock.y,
+
+                            savedBlock.z,
+
+                            type,
+
+                            true,
+
+                            true
+                        );
+                    }
                 }
             );
         }
@@ -1666,7 +1665,7 @@ async function loadWorld() {
     } catch (error) {
 
         console.error(
-            'Error cargando ARI CRAFT:',
+            'Error cargando:',
             error
         );
 
@@ -1679,7 +1678,7 @@ async function loadWorld() {
 
 
 /* =========================================================
-   INICIAR JUEGO
+   ENTRAR AL JUEGO
    ========================================================= */
 
 startButton.addEventListener(
@@ -1841,15 +1840,13 @@ function movePlayer(delta) {
 
         desktopControls
             .moveForward(
-                forward *
-                speed
+                forward * speed
             );
 
 
         desktopControls
             .moveRight(
-                right *
-                speed
+                right * speed
             );
     }
 
@@ -1872,7 +1869,7 @@ function movePlayer(delta) {
 
 
 /* =========================================================
-   FÚTBOL
+   BALÓN
    ========================================================= */
 
 function updateBall(delta) {
@@ -1936,8 +1933,6 @@ function updateBall(delta) {
         .95;
 
 
-    /* ---------- LÍMITES ---------- */
-
     if (
         Math.abs(
             ball.position.x
@@ -1971,8 +1966,6 @@ function updateBall(delta) {
             -.7;
     }
 
-
-    /* ---------- GOL ---------- */
 
     if (
 
@@ -2010,12 +2003,6 @@ function updateBall(delta) {
    AUTOGUARDADO
    ========================================================= */
 
-/*
- * Además de guardar cuando construimos
- * o rompemos, guardamos periódicamente
- * la posición.
- */
-
 setInterval(
     () => {
 
@@ -2032,11 +2019,6 @@ setInterval(
     15000
 );
 
-
-/*
- * Intentar guardar cuando la página
- * deja de estar visible.
- */
 
 document.addEventListener(
     'visibilitychange',
@@ -2112,10 +2094,8 @@ function animate() {
             camera.position.y =
                 2.2;
 
-
             verticalVelocity =
                 0;
-
 
             grounded =
                 true;
