@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARI CRAFT</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background: #87ceeb;
+}
+
+#game {
+    width: 100vw;
+    height: 100vh;
+}
+
+#crosshair {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 30px;
+    text-shadow: 0 0 3px black;
+    pointer-events: none;
+}
+
+#logo {
+    position: fixed;
+    top: 18px;
+    left: 20px;
+    color: white;
+    font-size: 26px;
+    font-weight: 900;
+    text-shadow: 3px 3px 0 #333;
+    pointer-events: none;
+}
+
+#help {
+    position: fixed;
+    top: 65px;
+    left: 20px;
+    padding: 12px 16px;
+    background: rgba(0,0,0,.55);
+    color: white;
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    pointer-events: none;
+}
+
+#hotbar {
+    position: fixed;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+}
+
+.slot {
+    width: 58px;
+    height: 58px;
+    border: 3px solid rgba(255,255,255,.65);
+    background: rgba(0,0,0,.55);
+    color: white;
+    display: grid;
+    place-items: center;
+    font-size: 30px;
+    border-radius: 5px;
+}
+
+.slot.active {
+    border-color: white;
+    transform: scale(1.1);
+}
+
+#start {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(0,0,0,.45);
+}
+
+#startBox {
+    background: rgba(25,25,25,.9);
+    color: white;
+    padding: 35px;
+    border-radius: 15px;
+    text-align: center;
+    max-width: 430px;
+}
+
+#startBox h1 {
+    margin: 0;
+    font-size: 42px;
+}
+
+#startBox p {
+    line-height: 1.6;
+}
+
+#startButton {
+    border: 0;
+    background: #59a52c;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    padding: 15px 30px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game"></div>
+
+<div id="logo">⛏ ARI CRAFT ⚽</div>
+
+<div id="crosshair">+</div>
+
+<div id="help">
+    WASD — moverse<br>
+    Ratón — mirar<br>
+    Espacio — saltar<br>
+    Click izquierdo — romper<br>
+    Click derecho — construir<br>
+    1-4 — cambiar bloque
+</div>
+
+<div id="hotbar">
+    <div class="slot active">🌱</div>
+    <div class="slot">🧱</div>
+    <div class="slot">🪨</div>
+    <div class="slot">🟨</div>
+</div>
+
+<div id="start">
+    <div id="startBox">
+        <h1>ARI CRAFT</h1>
+        <h2>El mundo de Ari</h2>
+        <p>
+            Construye. Explora. Juega.<br><br>
+            🧱 Construcción &nbsp; ⛏ Exploración &nbsp; ⚽ Fútbol
+        </p>
+        <button id="startButton">ENTRAR EN MI MUNDO</button>
+    </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+
+import * as THREE from 'three';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+scene.fog = new THREE.Fog(0x87ceeb, 30, 90);
+
+const camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    150
+);
+
+camera.position.set(0, 3, 8);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+
+document.getElementById('game').appendChild(renderer.domElement);
+
+const controls = new PointerLockControls(camera, document.body);
+
+document.getElementById('startButton').addEventListener('click', () => {
+    controls.lock();
+});
+
+controls.addEventListener('lock', () => {
+    document.getElementById('start').style.display = 'none';
+});
+
+controls.addEventListener('unlock', () => {
+    document.getElementById('start').style.display = 'grid';
+});
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x557755, 2.3));
+
+const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+sun.position.set(20, 35, 15);
+sun.castShadow = true;
+scene.add(sun);
+
+const blocks = [];
+
+const materials = [
+    new THREE.MeshLambertMaterial({ color: 0x55a630 }),
+    new THREE.MeshLambertMaterial({ color: 0xa64b32 }),
+    new THREE.MeshLambertMaterial({ color: 0x777777 }),
+    new THREE.MeshLambertMaterial({ color: 0xe8c547 })
+];
+
+const geometry = new THREE.BoxGeometry(1, 1, 1);
+
+function createBlock(x, y, z, type = 0) {
+
+    const block = new THREE.Mesh(geometry, materials[type]);
+
+    block.position.set(x, y, z);
+    block.userData.type = type;
+    block.castShadow = true;
+    block.receiveShadow = true;
+
+    scene.add(block);
+    blocks.push(block);
+
+    return block;
+}
+
+/* TERRENO */
+
+for (let x = -15; x <= 15; x++) {
+    for (let z = -15; z <= 15; z++) {
+
+        createBlock(x, 0, z, 0);
+
+        if (Math.random() > 0.93) {
+            createBlock(x, 1, z, 2);
+        }
+    }
+}
+
+/* PORTERÍA */
+
+const whiteMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
+
+function goalBlock(x,y,z,sx,sy,sz) {
+
+    const cube = new THREE.Mesh(
+        new THREE.BoxGeometry(sx,sy,sz),
+        whiteMaterial
+    );
+
+    cube.position.set(x,y,z);
+    scene.add(cube);
+}
+
+goalBlock(-3,1,-10,.25,3,.25);
+goalBlock(3,1,-10,.25,3,.25);
+goalBlock(0,2.5,-10,6,.25,.25);
+
+/* BALÓN */
+
+const ball = new THREE.Mesh(
+    new THREE.SphereGeometry(.45,20,20),
+    new THREE.MeshLambertMaterial({color:0xffffff})
+);
+
+ball.position.set(0,.6,-5);
+scene.add(ball);
+
+/* MOVIMIENTO */
+
+const keys = {};
+let velocityY = 0;
+let canJump = true;
+
+document.addEventListener('keydown', e => {
+
+    keys[e.code] = true;
+
+    if (e.code === 'Space' && canJump) {
+        velocityY = 7;
+        canJump = false;
+    }
+
+    const number = Number(e.key);
+
+    if (number >= 1 && number <= 4) {
+        selectedType = number - 1;
+        updateHotbar();
+    }
+});
+
+document.addEventListener('keyup', e => {
+    keys[e.code] = false;
+});
+
+let selectedType = 0;
+
+function updateHotbar() {
+
+    document.querySelectorAll('.slot').forEach((slot,index) => {
+        slot.classList.toggle('active', index === selectedType);
+    });
+}
+
+/* CONSTRUIR / ROMPER */
+
+const raycaster = new THREE.Raycaster();
+
+renderer.domElement.addEventListener('mousedown', e => {
+
+    if (!controls.isLocked) return;
+
+    raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
+
+    const hits = raycaster.intersectObjects(blocks);
+
+    if (!hits.length) return;
+
+    const hit = hits[0];
+
+    if (e.button === 0) {
+
+        if (hit.object.position.y > 0) {
+            scene.remove(hit.object);
+
+            const index = blocks.indexOf(hit.object);
+            if (index !== -1) blocks.splice(index,1);
+        }
+
+    }
+
+    if (e.button === 2) {
+
+        const position = hit.object.position
+            .clone()
+            .add(hit.face.normal);
+
+        createBlock(
+            Math.round(position.x),
+            Math.round(position.y),
+            Math.round(position.z),
+            selectedType
+        );
+    }
+});
+
+renderer.domElement.addEventListener('contextmenu', e => {
+    e.preventDefault();
+});
+
+/* LOOP */
+
+const clock = new THREE.Clock();
+
+function animate() {
+
+    requestAnimationFrame(animate);
+
+    const delta = Math.min(clock.getDelta(), .05);
+
+    if (controls.isLocked) {
+
+        const speed = 6 * delta;
+
+        if (keys['KeyW']) controls.moveForward(speed);
+        if (keys['KeyS']) controls.moveForward(-speed);
+        if (keys['KeyA']) controls.moveRight(-speed);
+        if (keys['KeyD']) controls.moveRight(speed);
+
+        velocityY -= 18 * delta;
+        camera.position.y += velocityY * delta;
+
+        if (camera.position.y <= 2) {
+            camera.position.y = 2;
+            velocityY = 0;
+            canJump = true;
+        }
+
+        /* PEQUEÑA FÍSICA DEL BALÓN */
+
+        const distance = camera.position.distanceTo(ball.position);
+
+        if (distance < 1.4) {
+
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+
+            direction.y = 0;
+
+            ball.position.add(
+                direction.multiplyScalar(3 * delta)
+            );
+        }
+    }
+
+    renderer.render(scene,camera);
+}
+
+animate();
+
+window.addEventListener('resize', () => {
+
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+    );
+});
+
+</script>
+</body>
+</html>
