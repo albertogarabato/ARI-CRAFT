@@ -2,15 +2,22 @@ import * as THREE from "three";
 import { bindTouchControls } from "./touch.js";
 import { World, BLOCKS, createWorldView } from "./world.js";
 import { Player } from "./player.js";
-import { Inventory, mineBlock, placeBlock } from "./inventory.js?v=0.4.2";
+import { Inventory, mineBlock, placeBlock } from "./inventory.js?v=0.5.0";
 import {
   connectFirebase,
   SaveSession,
   SaveConflict,
   encodeState,
   decodeState,
-} from "./firebase.js?v=0.4.2";
+  prepareCommit,
+} from "./firebase.js?v=0.5.0";
 
+import { Village, onField } from "./village.js?v=0.5.0";
+import { createVillageView } from "./village-view.js?v=0.5.0";
+let home = null,
+  village = null,
+  villageView = null,
+  region = "home";
 const $ = (id) => document.getElementById(id);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("#b5d8dc");
@@ -166,7 +173,13 @@ function toast(message) {
   toastTimer = setTimeout(() => ($("toast").hidden = true), 3200);
 }
 function snapshot() {
-  return encodeState(world, inventory, player);
+  return encodeState(
+    home?.world || world,
+    inventory,
+    home?.player || player,
+    village,
+    region,
+  );
 }
 function renderInventory() {
   inventory.render($("hotbar"), (index) => {
@@ -267,7 +280,8 @@ function pause() {
   document.body.classList.add("paused");
   $("menuTitle").setAttribute("aria-label", "ARI CRAFT · Juego en pausa");
   if (ready) {
-    $("playButton").textContent = "Continuar mi mundo →";
+    $("playButton").textContent =
+      region === "village" ? "Continuar en la aldea →" : "Continuar mi mundo →";
     $("playButton").focus();
   }
   checkpoint();
@@ -299,7 +313,19 @@ async function play() {
 function install(state) {
   const next = decodeState(state);
   view.dispose();
+  villageView?.dispose();
+  villageView = null;
   ({ world, inventory, player } = next);
+  home = { world, player };
+  village = next.village;
+  region = next.location;
+  if (region === "village") {
+    world = village.world;
+    player = village.player;
+    villageView = createVillageView(THREE, village, scene);
+    villageView.update();
+  }
+  updateTravelUI();
   view = createWorldView(THREE, world, scene);
   view.update();
   player.syncCamera(camera);
@@ -318,6 +344,9 @@ function install(state) {
   $("logoutButton").hidden = false;
   $("greeting").hidden = false;
   $("exportButton").hidden = false;
+  $("backupButton").hidden = false;
+  $("travelButton").hidden = false;
+  $("footballButton").hidden = false;
   $("reloadButton").hidden = true;
   $("greeting").textContent =
     mode === "local"
@@ -363,24 +392,129 @@ function localSession() {
         return raw ? JSON.parse(raw) : null;
       },
       async commit(entry) {
-        const raw = localStorage.getItem("ari-craft:04:demo-world"),
-          old = raw ? JSON.parse(raw).sandbox04 : null;
-        if (old?.commit === entry.commit) return old.revision;
-        if ((old?.revision || 0) !== entry.base) throw new SaveConflict();
-        const revision = entry.base + 1;
+        const raw = localStorage.getItem("ari-craft:04:demo-world");
+        const data = raw ? JSON.parse(raw) : null;
+        const patch = prepareCommit(data, entry);
+        if (!patch) return data.sandbox04.revision;
         localStorage.setItem(
           "ari-craft:04:demo-world",
-          JSON.stringify({
-            sandbox04: { revision, commit: entry.commit, state: entry.state },
-          }),
+          JSON.stringify({ ...data, ...patch }),
         );
-        return revision;
+        return patch.sandbox04.revision;
       },
     },
     localStorage,
     "ari-craft:04:demo-journal",
   );
 }
+function updateTravelUI() {
+  const visiting = region === "village";
+  $("playButton").textContent = visiting
+    ? "Continuar en la aldea →"
+    : "Continuar mi mundo →";
+  $("travelButton").textContent = visiting
+    ? "← Volver a mi mundo"
+    : "Visitar aldea, animales y fútbol →";
+  $("villageHud").hidden = !visiting;
+  $("resetBallButton").hidden = !visiting;
+  $("regionLabel").textContent = visiting ? "ALDEA GIRASOL" : "EL MUNDO DE ARI";
+  $("mission").textContent = visiting
+    ? "Explora las casas, saluda a los vecinos y juega en el campo."
+    : "Tu mundo de siempre. Construye con materiales ilimitados.";
+  if (visiting) updateScore();
+}
+function updateScore() {
+  $("score").textContent =
+    `Azul ${village.football.score[0]} · ${village.football.score[1]} Coral`;
+}
+$("travelButton").onclick = () => travel();
+$("footballButton").onclick = () => travel(true);
+async function travel(football = false) {
+  if (!ready) return;
+  const activeSession = session,
+    activeLoad = loadToken;
+  $("travelButton").disabled = true;
+  $("footballButton").disabled = true;
+  try {
+    // Finish saving before moving; failed saves never abandon the current world.
+    dirty = true;
+    await save();
+    if (session !== activeSession || loadToken !== activeLoad) return;
+    if (session.pending || session.blocked || !ready) {
+      toast(
+        "Guarda tu partida antes de viajar. Puedes reintentar con Guardar ahora.",
+      );
+      return;
+    }
+    if (!village) village = new Village();
+    view.dispose();
+    villageView?.dispose();
+    villageView = null;
+    region = football || region === "home" ? "village" : "home";
+    world = region === "village" ? village.world : home.world;
+    player = region === "village" ? village.player : home.player;
+    if (football) {
+      village.football.reset();
+      village.football.cooldown = 0;
+      player.position = { x: 15, y: 9, z: 8.4 };
+      player.velocity = { x: 0, y: 0, z: 0 };
+      player.yaw = 0;
+      player.pitch = -0.5;
+    }
+    world.markAll();
+    view = createWorldView(THREE, world, scene);
+    view.update();
+    if (region === "village") {
+      villageView = createVillageView(THREE, village, scene);
+      villageView.update();
+    }
+    clearInput();
+    player.syncCamera(camera);
+    updateTravelUI();
+    changed();
+    $("menuStatus").textContent =
+      region === "village"
+        ? "Has llegado a Aldea Girasol. Pulsa Continuar para explorar. Tu mundo te espera al volver."
+        : "Has vuelto a tu mundo y a la posición donde lo dejaste.";
+  } catch (error) {
+    toast(`No se pudo viajar: ${error.message}`);
+  } finally {
+    $("travelButton").disabled = false;
+    $("footballButton").disabled = false;
+  }
+}
+function villageAction() {
+  if (!playing || region !== "village") return;
+  if (village.football.kick(player)) {
+    changed();
+    toast("¡Chut!");
+    return;
+  }
+  const message = village.interact();
+  toast(
+    message ||
+      "Acércate al balón y mira hacia la portería. Usa Chutar o F. También puedes saludar a los vecinos.",
+  );
+}
+$("actionButton").onclick = villageAction;
+$("resetBallButton").onclick = () => {
+  if (ready && village) {
+    village.football.reset();
+    village.football.cooldown = 0;
+    villageView?.update();
+    changed();
+    toast("Balón al centro. El marcador se conserva.");
+  }
+};
+$("backupButton").onclick = () => {
+  if (session?.backup)
+    downloadCopy(
+      JSON.stringify({
+        backupBefore05: session.backup,
+        state: session.backup.state,
+      }),
+    );
+};
 async function initializeAuth() {
   $("loginButton").disabled = true;
   $("loginButton").textContent = "Preparando Google…";
@@ -541,6 +675,10 @@ document.addEventListener("keydown", (e) => {
     pause();
     return;
   }
+  if (e.code === "KeyF" && !e.repeat) {
+    e.preventDefault();
+    villageAction();
+  }
   keys.add(e.code);
   if (/^Digit[1-9]$/.test(e.code)) {
     inventory.select(Number(e.code.slice(-1)) - 1);
@@ -566,7 +704,21 @@ function target() {
   return world.raycast(camera.position, direction);
 }
 function placeSelected() {
-  if (placeBlock(world, inventory, player, target())) {
+  const hit = target();
+  if (!hit) {
+    toast(
+      "Apunta con la cruz al suelo o a un bloque cercano, a menos de 6 bloques.",
+    );
+    return;
+  }
+  if (
+    region === "village" &&
+    onField(hit.x + hit.normal[0], hit.y + hit.normal[1], hit.z + hit.normal[2])
+  ) {
+    toast("El campo está reservado para jugar. Puedes construir fuera de él.");
+    return;
+  }
+  if (placeBlock(world, inventory, player, hit)) {
     renderInventory();
     changed();
     $("mission").textContent = "¡Tu primera construcción! Sigue imaginando.";
@@ -638,8 +790,25 @@ function updateMining(dt) {
   const hit = target();
   outline.visible = !!hit;
   if (hit) outline.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
-  $("targetLabel").textContent = hit ? BLOCKS[hit.type].name : "";
-  if (!mining || !hit || hit.type === 8) {
+  const nearBall =
+    region === "village" &&
+    Math.hypot(
+      player.position.x - village.football.ball.x,
+      player.position.z - village.football.ball.z,
+    ) < 2.7;
+  $("targetLabel").textContent = nearBall
+    ? touchMode
+      ? "Balón · toca Chutar"
+      : "Balón · pulsa F"
+    : hit
+      ? BLOCKS[hit.type].name
+      : "";
+  if (
+    !mining ||
+    !hit ||
+    hit.type === 8 ||
+    (region === "village" && onField(hit.x, hit.y, hit.z))
+  ) {
     mineKey = "";
     mineTime = 0;
     $("breakProgress").hidden = true;
@@ -690,6 +859,16 @@ function frame(now) {
     const before = player.snapshot();
     while (accumulator >= 1 / 120) {
       player.update(1 / 120, input);
+      if (region === "village") {
+        const goal = village.update(1 / 120);
+        if (goal !== null) {
+          updateScore();
+          toast(
+            `¡GOL en la portería ${goal === 0 ? "azul" : "coral"}! Balón al centro.`,
+          );
+          dirty = true;
+        }
+      }
       accumulator -= 1 / 120;
     }
     if (
@@ -705,6 +884,10 @@ function frame(now) {
       lastPitch = player.pitch;
     }
     player.syncCamera(camera);
+    if (region === "village") {
+      villageView.update(dt);
+      dirty = true;
+    }
     updateMining(dt);
   }
   view.update();

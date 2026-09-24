@@ -1,54 +1,46 @@
-# Validación de ARI CRAFT 0.4
+# Validación de ARI CRAFT 0.5.0
 
-## Comprobado
+## Comprobado en esta entrega (24 de septiembre de 2026)
 
-23 pruebas automatizadas con Node.js, sin dependencias:
+33 pruebas automatizadas con Node.js, sin dependencias. Las 23 regresiones de terreno, colisiones, recursos, creativo, guardado y multitáctil siguen pasando. Las diez pruebas nuevas cubren:
 
-- Terreno idéntico para la misma semilla, relieve, capas y árboles.
-- Romper → recoger → colocar conserva las cantidades; recargar conserva las modificaciones.
-- No se colocan bloques dentro del jugador ni sobre otros bloques; la roca base no se rompe.
-- Selección del bloque más cercano, alcance y caras expuestas tras excavar.
-- Gravedad, apoyo en terreno, carrera contra una pared sin atravesarla.
-- Salto de más de un bloque, colisión con techo y caída al quitar el suelo.
-- Velocidad diagonal normalizada y límite del mundo.
-- Validación de datos dañados y recuperación de una posición dentro de un bloque.
-- Migración de construcciones antiguas, conservando los datos originales.
-- Límite de modificaciones sin pérdida de recursos.
-- Recuperación de copia local, escritura completa y lectura posterior.
-- Fallos de carga/escritura sin sustituir el mundo por uno nuevo.
-- Conflicto de dos dispositivos sin sobrescritura.
-- Cambios durante una escritura pendientes para la siguiente revisión.
-- Reintentos idempotentes y errores de almacenamiento local detectables.
-- Un documento 0.4 incompleto nunca se interpreta como una partida nueva.
+- Una partida 0.4 representativa conserva exactamente construcciones, inventario, semilla, terreno y posición tras crear la aldea, construir en ella, marcar goles, recargar y regresar.
+- Generación de la aldea determinista, puertas transitables y campo protegido.
+- Goles en ambas porterías, sin duplicación después del reinicio o recarga.
+- Tiros altos y fuera de la portería, rebotes y rechazo de chutes demasiado lejanos o a través de una pared.
+- Un minuto de simulación de habitantes, límites del prado/plaza y persistencia.
+- Datos de aldea malformados o de versión futura rechazados sin alterar el original.
+- Primera escritura con copia atómica, copia conservada en escrituras posteriores y conflictos de revisión.
+- Fallo de escritura/copia conserva tanto el original remoto como el diario pendiente.
+- Chut desde el saque hasta gol y recarga a mitad de trayectoria.
+- Conservación separada del diario 0.4 que todavía no se había sincronizado.
 
-Revisión visual en el navegador integrado:
+El archivo `js/world.js` coincide byte por byte con la versión anterior. No se ha alterado su generador.
 
-- Carga del menú y mundo 3D con texturas originales.
-- Apertura de partida local, guardado y recuperación tras recargar.
-- Entrada con cámara alternativa cuando el navegador rechaza Pointer Lock.
-- Interfaz de juego, selección de hotbar y pausa/inventario.
+## Navegador
 
-## Pendiente de validación externa
+Verificado en una partida local del navegador integrado:
 
-- Google Login y lectura/escritura de Firestore con una cuenta real, incluyendo continuar en otro dispositivo. No se han realizado escrituras de prueba sobre partidas de producción.
-- Captura del ratón y recorrido completo de juego en Chrome/Firefox/Safari de escritorio. El navegador integrado rechaza Pointer Lock; la alternativa al arrastrar sí permite abrir el juego. Las colisiones y el ciclo de recursos se han probado en la lógica automatizada.
-- Publicación en GitHub Pages tras revisar la propuesta de cambios. La validación local no certifica un despliegue de producción.
+- Menú 0.5.0, carga de una partida existente y viaje a Aldea Girasol.
+- Casas, aldeanos, señalización, campo, porterías y balón visibles.
+- Botón «Jugar al fútbol», chut desde el saque y marcador Azul 1 · 0 Coral.
+- Pausa, guardado local, regreso al mundo original y recarga; la aldea y el marcador permanecen.
+- Controles táctiles y botón de acción. Límites DOM revisados en 844 × 390: botones dentro del área visible y sin solapamiento entre marcador, acción, hotbar y botones de construcción.
+- Sin errores de consola en la sesión revisada.
 
-## Recorrido de aceptación en escritorio
+## Límites de la validación
 
-1. Iniciar sesión con Google y abrir el mundo. Confirmar que una carga fallida no habilita jugar.
-2. Caminar, correr y saltar; intentar atravesar un tronco o una pared.
-3. Mantener pulsado sobre un bloque y comprobar el progreso y la cantidad recogida.
-4. Seleccionarlo en la hotbar y colocarlo, comprobar que la cantidad baja en uno.
-5. Intentar colocar un bloque sin existencias y dentro del propio cuerpo.
-6. Guardar, esperar confirmación de nube, recargar y comprobar posición, inventario y construcción.
-7. Abrir la misma cuenta en otro dispositivo y comprobar la misma partida.
-8. Volver a una sesión anterior y editar: debe avisar del conflicto, conservar su copia y no sobrescribir la nube.
+No se ha leído la partida privada de Ari ni se han realizado escrituras de prueba en su documento de Firestore. La conservación se ha probado con una partida representativa y adaptadores controlados. La copia de su documento se hará de forma atómica al primer guardado con 0.5; aún no se afirma que esa copia concreta exista.
 
-## Adaptación móvil 0.4.1
+El usuario había confirmado Google y guardado en 0.4. La transacción 0.5 con el nuevo campo `backupBefore05` necesita la comprobación real de «Guardado en la nube» al abrir su cuenta. Si es rechazada, no se sobrescribe el documento y no se permite viajar. No se han modificado las reglas, credenciales ni dominios de Firebase.
 
-Cuatro pruebas adicionales verifican movimiento y mirada simultáneos, recogida y salto con varios dedos, zona muerta y normalización del joystick, cancelación de gestos y liberación de botones. Revisión de interfaz en 390 × 844 y 844 × 390: aviso de orientación, entrada sin captura de ratón, controles dentro del área visible y barra de materiales. El usuario ya confirmó Google, construcción y recuperación en la versión 0.4. La pantalla completa y la interacción multitáctil en un teléfono físico requieren validación en el dispositivo real.
+No se ha probado esta versión en un teléfono físico ni el gesto de varios dedos en hardware. La prueba automatizada de entradas cubre independencia de dedos, cancelación, normalización y liberación de acciones. No hay equipos, portero ni partidas multijugador.
 
-## Modo creativo 0.4.2
+## Recorrido para Ari
 
-Tres pruebas nuevas verifican colocación de todos los materiales con existencias cero, conservación de construcciones y cantidades históricas al cargar una partida anterior, persistencia del modo creativo y protección frente a colocar bloques dentro del jugador. Romper en creativo no exige espacio en el inventario.
+1. Abrir con su misma cuenta de Google y confirmar sus construcciones.
+2. Pulsar Guardar ahora y esperar «Guardado en la nube». Descargar la copia anterior si se desea tenerla fuera del navegador.
+3. Visitar la aldea, explorar las casas y acercarse a los habitantes para saludar.
+4. Pulsar Jugar al fútbol en el menú; continuar, mirar a la portería y chutar con F o el botón.
+5. Volver a mi mundo y comprobar la posición y las construcciones.
+6. Esperar el guardado antes de cambiar de dispositivo.

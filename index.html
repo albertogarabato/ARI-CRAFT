@@ -17,7 +17,7 @@
       content="El mundo de Ari. Explora, imagina y construye tu propio mundo de bloques."
     />
     <title>ARI CRAFT · El mundo de Ari</title>
-    <link rel="stylesheet" href="./css/game.css?v=0.4.2" />
+    <link rel="stylesheet" href="./css/game.css?v=0.5.0" />
     <script type="importmap">
       {
         "imports": {
@@ -31,7 +31,7 @@
     <div id="hud" hidden>
       <header class="hud-top">
         <div class="brand">
-          ARI<span>CRAFT</span><small>EL MUNDO DE ARI</small>
+          ARI<span>CRAFT</span><small id="regionLabel">EL MUNDO DE ARI</small>
         </div>
         <div class="hud-status">
           <span id="saveStatus" role="status">Preparando mundo…</span
@@ -68,6 +68,10 @@
           >Elige un material de arriba y pulsa Colocar. ¡Son ilimitados!</span
         >
       </div>
+      <div id="villageHud" hidden>
+        <span id="score" role="status">Azul 0 · 0 Coral</span
+        ><button id="actionButton">⚽ Chutar / saludar <small>F</small></button>
+      </div>
       <div id="crosshair" aria-hidden="true">+</div>
       <div id="targetLabel"></div>
       <progress
@@ -91,11 +95,11 @@
         <div class="eyebrow">
           <span class="status-dot"></span> MODO CREATIVO · BLOQUES ILIMITADOS
         </div>
-        <h1 id="menuTitle">ARI<span>CRAFT</span><sup>0.4.2</sup></h1>
+        <h1 id="menuTitle">ARI<span>CRAFT</span><sup>0.5.0</sup></h1>
         <p class="intro">El mundo de Ari.</p>
         <p class="description">
-          Un árbol, tu primera casa, una nueva aventura.<br />Todo empieza con
-          un bloque.
+          Tu mundo de siempre, una aldea por descubrir.<br />Nuevos amigos y un
+          campo para jugar.
         </p>
         <div class="features">
           <span>01 / EXPLORA</span><span>02 / IMAGINA</span
@@ -108,6 +112,12 @@
         <button id="playButton" class="primary" hidden>
           Continuar mi mundo <span>→</span>
         </button>
+        <button id="travelButton" class="secondary" hidden>
+          Visitar aldea, animales y fútbol →
+        </button>
+        <button id="footballButton" class="secondary" hidden>
+          ⚽ Jugar al fútbol
+        </button>
         <button id="fallbackButton" class="secondary" hidden>
           Jugar con cámara al arrastrar
         </button>
@@ -119,6 +129,9 @@
           ><button id="touchModeButton">Activar controles táctiles</button
           ><button id="saveButton" hidden>Guardar ahora</button
           ><button id="logoutButton" hidden>Cambiar de cuenta</button
+          ><button id="backupButton" hidden>
+            Descargar copia anterior a 0.5</button
+          ><button id="resetBallButton" hidden>Balón al centro</button
           ><button id="exportButton" hidden>Descargar copia local</button
           ><button id="reloadButton" hidden>
             Cargar nube y conservar copia aparte
@@ -138,6 +151,7 @@
           <div class="controls-grid">
             <span><kbd>W A S D</kbd> Moverse</span
             ><span><kbd>Ratón</kbd> Mirar</span
+            ><span><kbd>F</kbd> Chutar / saludar en la aldea</span
             ><span><kbd>Espacio</kbd> Saltar</span
             ><span><kbd>Mayús</kbd> Correr</span
             ><span><kbd>1–9 / rueda</kbd> Bloques</span
@@ -164,7 +178,7 @@
           </p>
         </div>
         <footer>
-          <span>HECHO PARA IMAGINAR</span><span>FÚTBOL · PRÓXIMAMENTE ↗</span>
+          <span>HECHO PARA IMAGINAR</span><span>ALDEA · ANIMALES · FÚTBOL</span>
         </footer>
       </div>
       <div class="world-caption">
@@ -196,7 +210,7 @@
     <div id="toast" role="status" hidden></div>
     <noscript>Activa JavaScript para jugar a ARI CRAFT.</noscript>
     <script type="module">
-      import("./js/game.js?v=0.4.2").catch((error) => {
+      import("./js/game.js?v=0.5.0").catch((error) => {
         console.error(error);
         document.querySelector("#menuStatus").textContent =
           "No se pudo iniciar el juego. Revisa la conexión y recarga la página.";

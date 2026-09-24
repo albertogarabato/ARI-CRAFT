@@ -933,3 +933,68 @@ body {
 #menuSaveStatus:empty {
   display: none;
 }
+
+/* The village action is usable with both a mouse and a thumb. */
+#villageHud {
+  position: absolute;
+  right: 30px;
+  top: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: end;
+}
+#score {
+  background: #17343bdc;
+  border-radius: 6px;
+  padding: 9px 14px;
+  font-size: 13px;
+}
+#actionButton {
+  pointer-events: auto;
+  touch-action: manipulation;
+  background: #daf09a;
+  color: #17343b;
+  border: 0;
+  border-radius: 12px;
+  padding: 13px 16px;
+  font-weight: 700;
+  min-height: 48px;
+}
+#actionButton small {
+  margin-left: 6px;
+  opacity: 0.65;
+}
+.paused #villageHud {
+  display: none;
+}
+.touch #villageHud {
+  top: 140px;
+  right: 12px;
+  gap: 4px;
+}
+.touch #score {
+  font-size: 11px;
+  padding: 5px 9px;
+}
+.touch #actionButton {
+  font-size: 11px;
+  padding: 10px;
+}
+.touch #actionButton small {
+  display: none;
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .touch #villageHud {
+    top: 77px;
+    right: 14px;
+  }
+  .touch #travelButton,
+  .touch #footballButton {
+    grid-column: 1;
+    margin: 0 0 10px;
+  }
+  .touch .menu-actions {
+    grid-row: 3/8;
+  }
+}
