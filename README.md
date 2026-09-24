@@ -1,4 +1,4 @@
-# ARI CRAFT · 0.5.0
+# ARI CRAFT · 0.6.0
 
 El mundo de Ari: un sandbox voxel para explorar, recoger y construir. Funciona como web estática en GitHub Pages, sin compilación. Texturas procedurales originales; no utiliza assets de Minecraft.
 
@@ -14,22 +14,27 @@ El mundo de Ari: un sandbox voxel para explorar, recoger y construir. Funciona c
 
 El modo creativo ofrece césped, tierra, piedra, madera, hojas, ladrillo y ámbar desde el principio, señalados con ∞. No hace falta recoger materiales. Las partidas antiguas conservan sus bloques y cantidades históricas y pasan a creativo al cargarse. Los dos últimos espacios quedan reservados.
 
-## Aldea Girasol, animales y fútbol
+## Mundo conectado (0.6)
 
-Desde el menú, **Visitar aldea, animales y fútbol** abre una región independiente: tres casas visitables y modificables, una plaza, dos aldeanos y un prado con dos ovejas, un cerdo y dos gallinas. Los habitantes caminan y se detienen ante los bloques; al acercarse, **Chutar / saludar** o **F** permite saludar. Los animales acompañan brevemente al jugador dentro de su prado.
+El mundo original y Aldea Girasol forman una escena continua de 160 × 64 columnas. La aldea está al este, a 96 bloques de desplazamiento respecto a sus coordenadas antiguas. Entre ambas zonas hay 32 columnas nuevas, con un camino de piedra que enlaza sus bordes. No hay portales, cambios de escena ni teletransporte al cruzar.
 
-**Jugar al fútbol** coloca al jugador ante el balón y lo devuelve al centro sin borrar el marcador. Mirar hacia la portería y pulsar **F** o **Chutar / saludar**, a menos de 2,7 bloques del balón. Hay rebote, rozamiento, dos porterías y detección de goles; cada gol devuelve el balón al centro. El marcador cuenta goles en la portería azul y coral; no simula dos equipos. **Balón al centro** permite recuperarlo durante una partida.
+- **Mirar hacia la aldea**, **Mirar hacia el campo** y **Mirar hacia mi mundo** orientan la cámara, sin mover al jugador. Continuar y seguir la flecha y la distancia del HUD.
+- Se suben automáticamente desniveles de un bloque si hay espacio encima. Las paredes altas y los techos siguen bloqueando el paso.
+- La aldea conserva sus tres casas, dos aldeanos y cinco animales. Acercarse y pulsar **F** o **Chutar / saludar** para interactuar.
+- Para jugar al fútbol, acercarse al balón, mirar hacia una portería y pulsar **F** o **Chutar / saludar**. **Balón al centro** lo recupera sin borrar el marcador.
+- El botón de acción móvil permanece a la izquierda, separado de Saltar. El campo sigue reservado para jugar; se puede construir fuera de él.
 
-**Volver a mi mundo** devuelve al jugador a su posición anterior. El terreno y las construcciones originales no se regeneran. El campo está reservado para el fútbol; fuera de él se puede construir y modificar las casas. Todavía no hay portero, equipos, comercio, cría ni multijugador.
+Esta entrega corresponde a la primera fase acordada: unir la aldea existente. Mantiene el modo creativo actual. Las aldeas adicionales, materiales nuevos y recursos limitados son las fases siguientes; todavía no están implementadas.
 
-### Protección de la partida anterior
+### Conservación de partidas
 
-- Se conserva exactamente el generador 1 y la semilla del mundo original. La región nueva tiene su propio generador fijo, modificaciones, posición, habitantes y balón.
-- Se mantiene `sandbox04`, formato 4, con `village` y `location` opcionales. Una partida 0.4 válida funciona sin tener estos campos. Los datos nuevos malformados o de versión desconocida impiden la carga: no se sustituyen por un mundo nuevo.
-- La primera escritura con 0.5 añade **`backupBefore05`** al mismo documento, con el `sandbox04` anterior. Copia y actualización se escriben en la misma transacción. La copia existente no vuelve a sobrescribirse. No se crea una copia de datos de producción durante el despliegue: se crea al guardar por primera vez con la cuenta correspondiente.
-- En local, copia y actualización se escriben juntas en `ari-craft:04:demo-world`. Un diario pendiente anterior se conserva además en `<clave-del-diario>:before05-journal` antes de consumirlo.
-- **Descargar copia anterior a 0.5** exporta la copia cargada al iniciar la sesión. **Descargar copia local** exporta el estado actual o pendiente. La restauración de archivos sigue siendo una operación de soporte; no hay importador automático.
-- El viaje exige terminar el guardado. Si las reglas de Firestore rechazan el campo de copia, la transacción completa falla, el original permanece y se conserva el diario local; no se desactivan las reglas.
+El generador 1 del mundo original no cambia. Los bloques modificados se mantienen en sus coordenadas de almacenamiento originales; la aldea se dibuja y consulta con un desplazamiento fijo. Una partida cerrada dentro de la aldea conserva su posición relativa, orientación, habitantes y marcador.
+
+El formato de guardado pasa de 4 a **6**, para que una versión antigua no abra el mundo nuevo ignorando datos que desconoce. El campo `connected` almacena la posición global y los cambios del terreno de enlace. La entrada opcional de piedra se añade solo si su margen no contiene cambios previos ni al jugador; el resto de la aldea conserva su generación. Si Ari ya construyó en ese margen, podrá adaptar su propia entrada.
+
+Antes de la primera escritura del formato 6, la misma transacción añade **`backupBefore06`** con la revisión, identificador y el estado anterior serializado como JSON. No sobrescribe esa copia ni `backupBefore05`. El diario local anterior queda además en `<clave>:before06-journal`. La copia real de una cuenta se crea al guardar con esa cuenta, no durante la publicación del código.
+
+**Descargar copia anterior a la unión** permite conservar el estado anterior fuera del navegador. Los archivos se recuperan mediante soporte; todavía no hay importador automático. Si la lectura, conversión, copia o escritura falla, el original remoto no se sustituye por una partida nueva. Los conflictos entre dispositivos siguen comprobando la revisión.
 
 ## Desarrollo local
 
@@ -59,6 +64,7 @@ npm test
 | `js/player.js`    | Movimiento, gravedad, salto, cámara y colisiones AABB                 |
 | `js/touch.js`     | Controles multitáctiles y propiedad independiente de cada dedo        |
 | `js/inventory.js` | Cantidades, hotbar y operaciones de recoger/colocar                   |
+| `js/connected.js` | Mundo continuo, terreno de enlace, conversión de posiciones y vista conjunta |
 | `js/village.js` | Región nueva, habitantes, balón y formato de la expansión |
 | `js/village-view.js` | Modelos originales, campo, porterías y animación |
 | `js/firebase.js`  | Google Auth, lectura, transacciones, copia local, formato y migración |
@@ -86,7 +92,7 @@ Espera a **Guardado en la nube** antes de cambiar de dispositivo. No se depende 
 
 ## Alcance de esta versión
 
-Mundo finito de 64 × 64 columnas y 64 bloques de altura, relieve determinista, árboles, suelo irrompible en la capa 0 y límite de 10.000 modificaciones activas para mantener el documento acotado. La cámara puede quedar por encima del techo de construcción. La aldea es otra región del mismo tamaño, con un máximo de 2.000 modificaciones adicionales para acotar el guardado junto con la copia anterior. No hay daño por caída ni multijugador simultáneo.
+Mundo finito de 64 × 64 columnas y 64 bloques de altura, relieve determinista, árboles, suelo irrompible en la capa 0 y límite de 10.000 modificaciones activas para mantener el documento acotado. La cámara puede quedar por encima del techo de construcción. La aldea ocupa otro tramo del mismo tamaño, unido mediante 32 columnas de terreno con un límite de 512 cambios, con un máximo de 2.000 modificaciones adicionales para acotar el guardado junto con la copia anterior. No hay daño por caída ni multijugador simultáneo.
 
 En móvil aparecen controles táctiles: joystick izquierdo (hasta el borde para correr), cámara al arrastrar a la derecha y botones Saltar, Romper y Colocar. Se recomienda horizontal; el aviso permite continuar en vertical. La interfaz respeta las áreas seguras y la altura visible del navegador. Pantalla completa se solicita cuando el navegador lo admite; en iPhone se explica cómo añadir el juego a la pantalla de inicio. El crafting, los equipos y los retos pertenecen a las siguientes fases.
 
@@ -94,6 +100,6 @@ En móvil aparecen controles táctiles: joystick izquierdo (hasta el borde para 
 
 Se conserva el uso de rutas relativas y dependencias CDN fijadas: Three.js 0.180.0 y Firebase 12.19.0. Publicar estos archivos en la rama que ya sirve GitHub Pages no requiere cambiar Firebase ni añadir un proceso de compilación. No se han modificado reglas, proveedores, credenciales ni dominios autorizados del proyecto.
 
-Al estrenar 0.5 con una cuenta real, comprobar lectura y actualización del documento propio con el campo de copia nuevo y el mensaje «Guardado en la nube». No abrir permisos globales para solucionar un error. Las pruebas de nube de esta entrega usan un adaptador controlado, no la base de datos de producción.
+Al estrenar 0.6 con una cuenta real, comprobar lectura y actualización del documento propio con el campo de copia nuevo y el mensaje «Guardado en la nube». No abrir permisos globales para solucionar un error. Las pruebas de nube de esta entrega usan un adaptador controlado, no la base de datos de producción.
 
 Consulta `VALIDACION.md` para los resultados y las comprobaciones pendientes.

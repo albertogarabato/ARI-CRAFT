@@ -65,6 +65,15 @@ export class Player {
       before = p[axis];
     p[axis] += amount;
     if (!this.collides()) return;
+    if (axis !== "y" && this.world.autoStep && this.canStep) {
+      const oldY = p.y;
+      p.y += 1.00001;
+      if (!this.collides()) {
+        this.canStep = false;
+        return;
+      }
+      p.y = oldY;
+    }
     // Binary search the last safe position. Each fixed step is < one voxel.
     let low = 0,
       high = 1;
@@ -97,6 +106,7 @@ export class Player {
       this.grounded = false;
     }
     this.velocity.y = Math.max(-25, this.velocity.y - 22 * dt);
+    this.canStep = this.grounded;
     this.grounded = false;
     this.moveAxis("x", this.velocity.x * dt);
     this.moveAxis("z", this.velocity.z * dt);
@@ -116,13 +126,19 @@ export class Player {
     return { ...this.position, yaw: this.yaw, pitch: this.pitch };
   }
   restore(data) {
+    const bounds = this.world.bounds || {
+      minX: MIN,
+      maxX: MAX,
+      minZ: MIN,
+      maxZ: MAX,
+    };
     if (
       data &&
       ["x", "y", "z", "yaw", "pitch"].every((k) => Number.isFinite(data[k])) &&
-      data.x >= MIN + RADIUS &&
-      data.x <= MAX + 1 - RADIUS &&
-      data.z >= MIN + RADIUS &&
-      data.z <= MAX + 1 - RADIUS &&
+      data.x >= bounds.minX + RADIUS &&
+      data.x <= bounds.maxX + 1 - RADIUS &&
+      data.z >= bounds.minZ + RADIUS &&
+      data.z <= bounds.maxZ + 1 - RADIUS &&
       data.y >= 1 &&
       data.y <= HEIGHT + 2
     ) {

@@ -1,46 +1,35 @@
-# Validación de ARI CRAFT 0.5.0
+# Validación de ARI CRAFT 0.6.0
 
-## Comprobado en esta entrega (24 de septiembre de 2026)
+## Automatización
 
-33 pruebas automatizadas con Node.js, sin dependencias. Las 23 regresiones de terreno, colisiones, recursos, creativo, guardado y multitáctil siguen pasando. Las diez pruebas nuevas cubren:
+44 pruebas pasan con Node.js. Se mantienen las 33 regresiones anteriores de mundo, movimiento, creativo, recursos, guardado, móvil, habitantes y fútbol. Las 11 pruebas nuevas comprueban:
 
-- Una partida 0.4 representativa conserva exactamente construcciones, inventario, semilla, terreno y posición tras crear la aldea, construir en ella, marcar goles, recargar y regresar.
-- Generación de la aldea determinista, puertas transitables y campo protegido.
-- Goles en ambas porterías, sin duplicación después del reinicio o recarga.
-- Tiros altos y fuera de la portería, rebotes y rechazo de chutes demasiado lejanos o a través de una pared.
-- Un minuto de simulación de habitantes, límites del prado/plaza y persistencia.
-- Datos de aldea malformados o de versión futura rechazados sin alterar el original.
-- Primera escritura con copia atómica, copia conservada en escrituras posteriores y conflictos de revisión.
-- Fallo de escritura/copia conserva tanto el original remoto como el diario pendiente.
-- Chut desde el saque hasta gol y recarga a mitad de trayectoria.
-- Conservación separada del diario 0.4 que todavía no se había sincronizado.
+- Conservación del mundo original, edificios y eliminaciones de la aldea, cantidades, habitantes y marcador al unir.
+- Conversión única de una posición guardada dentro de la aldea y estabilidad en recargas posteriores.
+- Recorrido andando desde el borde del mundo original a la plaza y regreso, sin portales ni saltos.
+- Raycast, romper y colocar con inventario finito en ambos bordes y en el camino; campo protegido en sus coordenadas nuevas.
+- Recarga de una posición y modificaciones dentro del terreno de enlace.
+- La entrada no se añade sobre construcciones previas; las nuevas escaleras minadas no reaparecen al recargar.
+- Límites globales, paredes altas y techos bloquean el movimiento correctamente.
+- Rechazo de estados incompletos o de versiones futuras, copia anterior atómica y conservación de copias existentes.
+- Un jugador dentro del área de la entrada no es desplazado al convertir la partida.
+- El balón sigue recibiendo chutes y guardando goles con el jugador en coordenadas globales.
 
-El archivo `js/world.js` coincide byte por byte con la versión anterior. No se ha alterado su generador.
+`js/world.js`, el generador original, no ha cambiado. La copia de una partida real de Ari no se ha leído ni modificado durante estas pruebas.
 
 ## Navegador
 
-Verificado en una partida local del navegador integrado:
+- Carga y conversión de una partida local 0.5 que estaba dentro de la aldea; posición relativa y marcador recuperados.
+- Menú 0.6, guía de dirección y distancia y controles táctiles; Chutar permanece a la izquierda.
+- Vista de comprobación con el mundo original, camino y aldea dibujados al mismo tiempo, sin huecos entre zonas.
+- Recorrido visual de ida y vuelta usando la misma física y los mismos módulos del juego, en un escenario de prueba sin datos de usuario.
 
-- Menú 0.5.0, carga de una partida existente y viaje a Aldea Girasol.
-- Casas, aldeanos, señalización, campo, porterías y balón visibles.
-- Botón «Jugar al fútbol», chut desde el saque y marcador Azul 1 · 0 Coral.
-- Pausa, guardado local, regreso al mundo original y recarga; la aldea y el marcador permanecen.
-- Controles táctiles y botón de acción. Límites DOM revisados en 844 × 390: botones dentro del área visible y sin solapamiento entre marcador, acción, hotbar y botones de construcción.
-- Sin errores de consola en la sesión revisada.
+## Comprobación real pendiente
 
-## Límites de la validación
+La escritura nueva de Firestore y la copia `backupBefore06` se comprueban con la cuenta del usuario al primer guardado. Si las reglas rechazan esa escritura, la transacción completa falla y el original permanece. No se han cambiado reglas ni configuración de Firebase.
 
-No se ha leído la partida privada de Ari ni se han realizado escrituras de prueba en su documento de Firestore. La conservación se ha probado con una partida representativa y adaptadores controlados. La copia de su documento se hará de forma atómica al primer guardado con 0.5; aún no se afirma que esa copia concreta exista.
+No se ha probado en un móvil físico. Se mantiene la validación previa del posicionamiento de controles en 844 × 390 y 390 × 844; la guía vertical se ha separado del botón de chutar.
 
-El usuario había confirmado Google y guardado en 0.4. La transacción 0.5 con el nuevo campo `backupBefore05` necesita la comprobación real de «Guardado en la nube» al abrir su cuenta. Si es rechazada, no se sobrescribe el documento y no se permite viajar. No se han modificado las reglas, credenciales ni dominios de Firebase.
+## Alcance
 
-No se ha probado esta versión en un teléfono físico ni el gesto de varios dedos en hardware. La prueba automatizada de entradas cubre independencia de dedos, cancelación, normalización y liberación de acciones. No hay equipos, portero ni partidas multijugador.
-
-## Recorrido para Ari
-
-1. Abrir con su misma cuenta de Google y confirmar sus construcciones.
-2. Pulsar Guardar ahora y esperar «Guardado en la nube». Descargar la copia anterior si se desea tenerla fuera del navegador.
-3. Visitar la aldea, explorar las casas y acercarse a los habitantes para saludar.
-4. Pulsar Jugar al fútbol en el menú; continuar, mirar a la portería y chutar con F o el botón.
-5. Volver a mi mundo y comprobar la posición y las construcciones.
-6. Esperar el guardado antes de cambiar de dispositivo.
+Esta versión une la aldea existente. Conserva el modo creativo. Nuevos tipos de bloques, aldeas adicionales y recursos limitados quedan para la siguiente fase acordada.

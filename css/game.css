@@ -1004,3 +1004,10 @@ body {
     grid-row: 3/8;
   }
 }
+
+/* Keep navigation clear of the left kick button in portrait. */
+@media (orientation: portrait) {
+  .touch #touchTip {
+    bottom: calc(260px + env(safe-area-inset-bottom));
+  }
+}

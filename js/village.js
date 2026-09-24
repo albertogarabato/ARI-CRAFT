@@ -1,5 +1,5 @@
 import { World, HEIGHT } from "./world.js";
-import { Player } from "./player.js";
+import { Player } from "./player.js?v=0.6.0";
 
 // A separate, versioned region. Never modify the original world's generator.
 export const VILLAGE_EDIT_LIMIT = 2000;
@@ -73,7 +73,13 @@ export const RESIDENTS = [
 export function onField(x, y, z) {
   return x >= 5 && x <= 25 && z >= -10 && z <= 22 && y >= 1 && y < HEIGHT;
 }
-export function createVillageWorld() {
+function addEntrance(world) {
+  // Stone steps at the west edge connect the old raised border to the plaza.
+  for (let x = -26; x <= -25; x++)
+    for (let z = -7; z <= -5; z++)
+      for (let y = 9; y <= -x - 16; y++) world.base[world.index(x, y, z)] = 3;
+}
+export function createVillageWorld(entrance = false) {
   const world = new World({ seed: 24092027 });
   // Remove the old trees before flattening so no cut-off canopies remain.
   for (let i = 0; i < world.base.length; i++)
@@ -169,6 +175,7 @@ export function createVillageWorld() {
   // Two gaps let the player enter from the village.
   put(5, 9, 5, 0);
   put(5, 9, 6, 0);
+  if (entrance) addEntrance(world);
   const set = world.set.bind(world);
   world.set = (x, y, z, type) => {
     if (onField(x, y, z)) return false;
@@ -288,7 +295,10 @@ export class Village {
   constructor(saved) {
     if (saved && (saved.version !== 1 || !saved.football || !saved.player))
       throw Error("La aldea necesita una versión compatible.");
-    this.world = createVillageWorld();
+    if (saved?.entrance !== undefined && typeof saved.entrance !== "boolean")
+      throw Error("Entrada guardada no válida");
+    this.entrance = saved?.entrance || false;
+    this.world = createVillageWorld(this.entrance);
     if (saved) {
       // A protected-field edit must fail rather than silently disappear.
       if (
@@ -342,6 +352,18 @@ export class Village {
       }
       return { ...r, actor, phase: i * 1.7, follow: 0 };
     });
+  }
+  connectEntrance() {
+    const occupied = [...this.world.edits.keys()].some((k) => {
+      const [x, , z] = k.split(",").map(Number);
+      return x >= -28 && x <= -22 && z >= -9 && z <= -3;
+    });
+    const p = this.player.position;
+    if (occupied || (p.x >= -28 && p.x <= -22 && p.z >= -9 && p.z <= -3))
+      return;
+    this.entrance = true;
+    addEntrance(this.world);
+    this.world.markAll();
   }
   interact() {
     const p = this.player.position;
@@ -399,6 +421,7 @@ export class Village {
   }
   snapshot() {
     return {
+      ...(this.entrance ? { entrance: true } : {}),
       version: 1,
       edits: this.world.serialize(),
       player: this.player.snapshot(),
