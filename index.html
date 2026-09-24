@@ -17,7 +17,7 @@
       content="El mundo de Ari. Explora, imagina y construye tu propio mundo de bloques."
     />
     <title>ARI CRAFT · El mundo de Ari</title>
-    <link rel="stylesheet" href="./css/game.css?v=0.5.1" />
+    <link rel="stylesheet" href="./css/game.css?v=0.6.0" />
     <script type="importmap">
       {
         "imports": {
@@ -95,10 +95,10 @@
         <div class="eyebrow">
           <span class="status-dot"></span> MODO CREATIVO · BLOQUES ILIMITADOS
         </div>
-        <h1 id="menuTitle">ARI<span>CRAFT</span><sup>0.5.1</sup></h1>
-        <p class="intro">El mundo de Ari.</p>
+        <h1 id="menuTitle">ARI<span>CRAFT</span><sup>0.6.0</sup></h1>
+        <p class="intro">Un camino, muchas aventuras.</p>
         <p class="description">
-          Tu mundo de siempre, una aldea por descubrir.<br />Nuevos amigos y un
+          Tu mundo y la aldea, unidos para explorar.<br />Nuevos amigos y un
           campo para jugar.
         </p>
         <div class="features">
@@ -113,10 +113,10 @@
           Continuar mi mundo <span>→</span>
         </button>
         <button id="travelButton" class="secondary" hidden>
-          Visitar aldea, animales y fútbol →
+          Mirar hacia la aldea →
         </button>
         <button id="footballButton" class="secondary" hidden>
-          ⚽ Jugar al fútbol
+          Mirar hacia el campo ⚽
         </button>
         <button id="fallbackButton" class="secondary" hidden>
           Jugar con cámara al arrastrar
@@ -127,10 +127,11 @@
         <div class="menu-actions">
           <button id="fullscreenButton">⛶ Pantalla completa</button
           ><button id="touchModeButton">Activar controles táctiles</button
+          ><button id="homeButton" hidden>Mirar hacia mi mundo</button
           ><button id="saveButton" hidden>Guardar ahora</button
           ><button id="logoutButton" hidden>Cambiar de cuenta</button
           ><button id="backupButton" hidden>
-            Descargar copia anterior a 0.5</button
+            Descargar copia anterior a la unión</button
           ><button id="resetBallButton" hidden>Balón al centro</button
           ><button id="exportButton" hidden>Descargar copia local</button
           ><button id="reloadButton" hidden>
@@ -210,7 +211,7 @@
     <div id="toast" role="status" hidden></div>
     <noscript>Activa JavaScript para jugar a ARI CRAFT.</noscript>
     <script type="module">
-      import("./js/game.js?v=0.5.0").catch((error) => {
+      import("./js/game.js?v=0.6.0").catch((error) => {
         console.error(error);
         document.querySelector("#menuStatus").textContent =
           "No se pudo iniciar el juego. Revisa la conexión y recarga la página.";

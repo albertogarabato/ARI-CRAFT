@@ -1,19 +1,27 @@
 import * as THREE from "three";
 import { bindTouchControls } from "./touch.js";
 import { World, BLOCKS, createWorldView } from "./world.js";
-import { Player } from "./player.js";
-import { Inventory, mineBlock, placeBlock } from "./inventory.js?v=0.5.0";
+import { Player } from "./player.js?v=0.6.0";
+import { Inventory, mineBlock, placeBlock } from "./inventory.js?v=0.6.0";
 import {
   connectFirebase,
   SaveSession,
   SaveConflict,
   encodeState,
+  encodeJourney,
   decodeState,
   prepareCommit,
-} from "./firebase.js?v=0.5.0";
+} from "./firebase.js?v=0.6.0";
 
-import { Village, onField } from "./village.js?v=0.5.0";
-import { createVillageView } from "./village-view.js?v=0.5.0";
+import {
+  Journey,
+  VILLAGE_X,
+  createConnectedView,
+} from "./connected.js?v=0.6.0";
+import { createVillageView } from "./village-view.js?v=0.6.0";
+let journey = null,
+  navigationTarget = "village",
+  navigationTime = 0;
 let home = null,
   village = null,
   villageView = null,
@@ -21,12 +29,12 @@ let home = null,
 const $ = (id) => document.getElementById(id);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("#b5d8dc");
-scene.fog = new THREE.Fog("#b5d8dc", 38, 95);
+scene.fog = new THREE.Fog("#b5d8dc", 100, 230);
 const camera = new THREE.PerspectiveCamera(
   70,
   innerWidth / innerHeight,
   0.05,
-  150,
+  280,
 );
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
@@ -173,14 +181,11 @@ function toast(message) {
   toastTimer = setTimeout(() => ($("toast").hidden = true), 3200);
 }
 function snapshot() {
-  return encodeState(
-    home?.world || world,
-    inventory,
-    home?.player || player,
-    village,
-    region,
-  );
+  return journey
+    ? encodeJourney(journey, inventory)
+    : encodeState(world, inventory, player);
 }
+
 function renderInventory() {
   inventory.render($("hotbar"), (index) => {
     inventory.select(index);
@@ -315,19 +320,24 @@ function install(state) {
   view.dispose();
   villageView?.dispose();
   villageView = null;
-  ({ world, inventory, player } = next);
-  home = { world, player };
-  village = next.village;
-  region = next.location;
-  if (region === "village") {
-    world = village.world;
-    player = village.player;
-    villageView = createVillageView(THREE, village, scene);
-    villageView.update();
-  }
-  updateTravelUI();
-  view = createWorldView(THREE, world, scene);
+  inventory = next.inventory;
+  journey =
+    next.journey ||
+    new Journey(
+      { world: next.world, player: next.player },
+      next.village,
+      next.location,
+    );
+  world = journey.world;
+  player = journey.player;
+  home = journey.home;
+  village = journey.village;
+  region = journey.region;
+  view = createConnectedView(THREE, journey, scene);
   view.update();
+  villageView = createVillageView(THREE, village, view.villageScene);
+  villageView.update();
+  updateTravelUI();
   player.syncCamera(camera);
   renderInventory();
   ready = true;
@@ -347,6 +357,7 @@ function install(state) {
   $("backupButton").hidden = false;
   $("travelButton").hidden = false;
   $("footballButton").hidden = false;
+  $("homeButton").hidden = false;
   $("reloadButton").hidden = true;
   $("greeting").textContent =
     mode === "local"
@@ -358,7 +369,7 @@ function install(state) {
       : "Tu mundo se guarda automáticamente. Espera a «Guardado en la nube» antes de continuar en otro dispositivo.";
   status(mode === "local" ? "Partida local" : "Mundo cargado");
   // Persist migration/new state only after a successful remote read and validation.
-  if (!session.revision || session.pending) changed();
+  if (!session.revision || session.pending || state.version !== 6) changed();
 }
 async function loadSession(nextSession, nextMode) {
   const token = ++loadToken;
@@ -409,83 +420,77 @@ function localSession() {
 }
 function updateTravelUI() {
   const visiting = region === "village";
-  $("playButton").textContent = visiting
-    ? "Continuar en la aldea →"
-    : "Continuar mi mundo →";
-  $("travelButton").textContent = visiting
-    ? "← Volver a mi mundo"
-    : "Visitar aldea, animales y fútbol →";
+  $("playButton").textContent = "Continuar explorando →";
+  $("travelButton").textContent = "Mirar hacia la aldea →";
+  $("footballButton").textContent = "Mirar hacia el campo ⚽";
   $("villageHud").hidden = !visiting;
   $("resetBallButton").hidden = !visiting;
-  $("regionLabel").textContent = visiting ? "ALDEA GIRASOL" : "EL MUNDO DE ARI";
-  $("mission").textContent = visiting
-    ? "Explora las casas, saluda a los vecinos y juega en el campo."
-    : "Tu mundo de siempre. Construye con materiales ilimitados.";
+  $("regionLabel").textContent = visiting
+    ? "ALDEA GIRASOL"
+    : region === "path"
+      ? "CAMINO DE GIRASOL"
+      : "EL MUNDO DE ARI";
   if (visiting) updateScore();
+  updateNavigation();
 }
+function updateNavigation() {
+  if (!journey) return;
+  const target =
+    navigationTarget === "home"
+      ? { x: 0.5, z: 3.5, name: "Mi mundo" }
+      : navigationTarget === "field"
+        ? { x: VILLAGE_X + 15, z: 6, name: "Campo de Ari" }
+        : { x: VILLAGE_X - 12, z: -6, name: "Aldea Girasol" };
+  const dx = target.x - player.position.x,
+    dz = target.z - player.position.z;
+  const bearing = Math.atan2(-dx, -dz);
+  const relative = Math.atan2(
+    Math.sin(bearing - player.yaw),
+    Math.cos(bearing - player.yaw),
+  );
+  const arrow =
+    Math.abs(relative) < Math.PI / 4
+      ? "↑"
+      : Math.abs(relative) > (Math.PI * 3) / 4
+        ? "↓"
+        : relative > 0
+          ? "←"
+          : "→";
+  const distance = Math.round(Math.hypot(dx, dz));
+  const hint =
+    distance < 5
+      ? `Has llegado a ${target.name}`
+      : `${arrow} ${target.name} · ${distance} bloques`;
+  $("mission").textContent = hint + " · Puedes llegar andando.";
+  $("touchTip").textContent = hint;
+}
+function faceDestination(destination) {
+  if (!ready) return;
+  navigationTarget = destination;
+  const x =
+      destination === "home"
+        ? 0.5
+        : VILLAGE_X + (destination === "field" ? 15 : -12),
+    z = destination === "home" ? 3.5 : destination === "field" ? 6 : -6;
+  player.yaw = Math.atan2(player.position.x - x, player.position.z - z);
+  player.pitch = -0.12;
+  player.syncCamera(camera);
+  updateNavigation();
+  changed();
+  $("menuStatus").textContent =
+    "Ya estás mirando hacia tu destino. Pulsa Continuar y camina siguiendo la indicación. El camino conecta las dos zonas.";
+}
+$("travelButton").onclick = () => faceDestination("village");
+$("footballButton").onclick = () => faceDestination("field");
+$("homeButton").onclick = () => faceDestination("home");
 function updateScore() {
   $("score").textContent =
     `Azul ${village.football.score[0]} · ${village.football.score[1]} Coral`;
 }
-$("travelButton").onclick = () => travel();
-$("footballButton").onclick = () => travel(true);
-async function travel(football = false) {
-  if (!ready) return;
-  const activeSession = session,
-    activeLoad = loadToken;
-  $("travelButton").disabled = true;
-  $("footballButton").disabled = true;
-  try {
-    // Finish saving before moving; failed saves never abandon the current world.
-    dirty = true;
-    await save();
-    if (session !== activeSession || loadToken !== activeLoad) return;
-    if (session.pending || session.blocked || !ready) {
-      toast(
-        "Guarda tu partida antes de viajar. Puedes reintentar con Guardar ahora.",
-      );
-      return;
-    }
-    if (!village) village = new Village();
-    view.dispose();
-    villageView?.dispose();
-    villageView = null;
-    region = football || region === "home" ? "village" : "home";
-    world = region === "village" ? village.world : home.world;
-    player = region === "village" ? village.player : home.player;
-    if (football) {
-      village.football.reset();
-      village.football.cooldown = 0;
-      player.position = { x: 15, y: 9, z: 8.4 };
-      player.velocity = { x: 0, y: 0, z: 0 };
-      player.yaw = 0;
-      player.pitch = -0.5;
-    }
-    world.markAll();
-    view = createWorldView(THREE, world, scene);
-    view.update();
-    if (region === "village") {
-      villageView = createVillageView(THREE, village, scene);
-      villageView.update();
-    }
-    clearInput();
-    player.syncCamera(camera);
-    updateTravelUI();
-    changed();
-    $("menuStatus").textContent =
-      region === "village"
-        ? "Has llegado a Aldea Girasol. Pulsa Continuar para explorar. Tu mundo te espera al volver."
-        : "Has vuelto a tu mundo y a la posición donde lo dejaste.";
-  } catch (error) {
-    toast(`No se pudo viajar: ${error.message}`);
-  } finally {
-    $("travelButton").disabled = false;
-    $("footballButton").disabled = false;
-  }
-}
 function villageAction() {
   if (!playing || region !== "village") return;
-  if (village.football.kick(player)) {
+  journey.syncAnchors();
+  if (village.football.kick(village.player)) {
     changed();
     toast("¡Chut!");
     return;
@@ -510,7 +515,7 @@ $("backupButton").onclick = () => {
   if (session?.backup)
     downloadCopy(
       JSON.stringify({
-        backupBefore05: session.backup,
+        backupBefore06: session.backup,
         state: session.backup.state,
       }),
     );
@@ -605,7 +610,7 @@ function downloadCopy(raw) {
     url = URL.createObjectURL(blob),
     a = document.createElement("a");
   a.href = url;
-  a.download = `ari-craft-04-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `ari-craft-06-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -712,8 +717,11 @@ function placeSelected() {
     return;
   }
   if (
-    region === "village" &&
-    onField(hit.x + hit.normal[0], hit.y + hit.normal[1], hit.z + hit.normal[2])
+    world.protected(
+      hit.x + hit.normal[0],
+      hit.y + hit.normal[1],
+      hit.z + hit.normal[2],
+    )
   ) {
     toast("El campo está reservado para jugar. Puedes construir fuera de él.");
     return;
@@ -793,7 +801,7 @@ function updateMining(dt) {
   const nearBall =
     region === "village" &&
     Math.hypot(
-      player.position.x - village.football.ball.x,
+      player.position.x - VILLAGE_X - village.football.ball.x,
       player.position.z - village.football.ball.z,
     ) < 2.7;
   $("targetLabel").textContent = nearBall
@@ -807,7 +815,7 @@ function updateMining(dt) {
     !mining ||
     !hit ||
     hit.type === 8 ||
-    (region === "village" && onField(hit.x, hit.y, hit.z))
+    world.protected(hit.x, hit.y, hit.z)
   ) {
     mineKey = "";
     mineTime = 0;
@@ -859,7 +867,8 @@ function frame(now) {
     const before = player.snapshot();
     while (accumulator >= 1 / 120) {
       player.update(1 / 120, input);
-      if (region === "village") {
+      journey.syncAnchors();
+      {
         const goal = village.update(1 / 120);
         if (goal !== null) {
           updateScore();
@@ -884,9 +893,16 @@ function frame(now) {
       lastPitch = player.pitch;
     }
     player.syncCamera(camera);
-    if (region === "village") {
-      villageView.update(dt);
-      dirty = true;
+    villageView.update(dt);
+    dirty = true;
+    if (region !== journey.region) {
+      region = journey.region;
+      updateTravelUI();
+    }
+    navigationTime += dt;
+    if (navigationTime > 0.2) {
+      updateNavigation();
+      navigationTime = 0;
     }
     updateMining(dt);
   }
