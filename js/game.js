@@ -1,3 +1,4 @@
+import { enterFullscreen } from "./app-mode.js?v=0.6.1";
 import * as THREE from "three";
 import { bindTouchControls } from "./touch.js";
 import { World, BLOCKS, createWorldView } from "./world.js";
@@ -117,9 +118,6 @@ function updateTouchMode() {
   $("touchModeButton").textContent = touchMode
     ? "Usar teclado y ratón"
     : "Activar controles táctiles";
-  $("fullscreenHelp").hidden =
-    !!document.documentElement.requestFullscreen ||
-    matchMedia("(display-mode: standalone)").matches;
   $("help").hidden = touchMode;
   renderer.setPixelRatio(Math.min(devicePixelRatio, touchMode ? 1.4 : 1.75));
 }
@@ -138,23 +136,6 @@ function startTouch() {
 function needsRotation() {
   return touchMode && !portraitAllowed && innerHeight > innerWidth;
 }
-async function fullscreen() {
-  const root = document.documentElement;
-  if (document.fullscreenElement) return;
-  if (root.requestFullscreen) {
-    try {
-      await root.requestFullscreen({ navigationUI: "hide" });
-    } catch {
-      toast(
-        "Puedes seguir jugando. Usa el menú del navegador para ampliar la pantalla.",
-      );
-    }
-  } else {
-    $("fullscreenHelp").hidden = false;
-    toast("En iPhone: Compartir → Añadir a pantalla de inicio.");
-  }
-}
-$("fullscreenButton").onclick = fullscreen;
 $("touchModeButton").onclick = () => {
   touchMode = !touchMode;
   clearInput();
@@ -162,7 +143,7 @@ $("touchModeButton").onclick = () => {
 };
 $("portraitButton").onclick = () => {
   portraitAllowed = true;
-  if (nativeTouch) void fullscreen();
+  if (nativeTouch) void enterFullscreen({ automatic: true });
   startTouch();
 };
 $("rotateBack").onclick = () => {
@@ -295,7 +276,7 @@ function pause() {
 async function play() {
   if (!ready) return;
   if (touchMode) {
-    if (nativeTouch) void fullscreen();
+    if (nativeTouch) void enterFullscreen({ automatic: true });
     if (needsRotation()) {
       rotatePending = true;
       $("rotatePrompt").hidden = false;
@@ -932,7 +913,9 @@ function resizeGame() {
   }
 }
 addEventListener("resize", resizeGame);
+document.addEventListener("fullscreenchange", resizeGame);
 window.visualViewport?.addEventListener("resize", resizeGame);
+document.addEventListener("fullscreenchange", resizeGame);
 addEventListener("orientationchange", () => {
   clearInput();
   setTimeout(resizeGame, 200);
