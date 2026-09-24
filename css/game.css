@@ -978,7 +978,13 @@ body {
   padding: 5px 9px;
 }
 .touch #actionButton {
-  font-size: 11px;
+  position: fixed;
+  left: max(24px, env(safe-area-inset-left));
+  bottom: calc(180px + env(safe-area-inset-bottom));
+  width: 124px;
+  min-height: 52px;
+  font-size: 12px;
+  line-height: 1.4;
   padding: 10px;
 }
 .touch #actionButton small {
