@@ -1,6 +1,7 @@
 import { World, SEED } from "./world.js";
-import { Inventory } from "./inventory.js?v=0.4.2";
+import { Inventory } from "./inventory.js?v=0.5.0";
 import { Player } from "./player.js";
+import { Village } from "./village.js?v=0.5.0";
 
 // Public web-app configuration preserved verbatim from the working prototype.
 const firebaseConfig = {
@@ -28,10 +29,37 @@ export function decodeState(state) {
   inventory.restore(state.inventory);
   const player = new Player(world);
   player.restore(state.player);
-  return { world, inventory, player };
-}
-export function encodeState(world, inventory, player) {
+  if (
+    state.location !== undefined &&
+    !["home", "village"].includes(state.location)
+  )
+    throw new Error("Zona guardada no válida");
+  if (state.location === "village" && !state.village)
+    throw new Error("Falta la aldea guardada");
+  if (
+    state.village !== undefined &&
+    (!state.village || typeof state.village !== "object")
+  )
+    throw new Error("Aldea guardada no válida");
+  const village =
+    state.village === undefined ? null : new Village(state.village);
   return {
+    world,
+    inventory,
+    player,
+    village,
+    location: state.location || "home",
+  };
+}
+export function encodeState(
+  world,
+  inventory,
+  player,
+  village = null,
+  location = "home",
+) {
+  return {
+    ...(village ? { village: village.snapshot(), location } : {}),
     version: 4,
     generator: 1,
     seed: world.seed,
@@ -85,6 +113,22 @@ export class SaveConflict extends Error {
     this.code = "save/conflict";
   }
 }
+// Used by both cloud and local adapters. The first backup and next state are
+// written atomically; existing backups and other document fields are retained.
+export function prepareCommit(data, entry) {
+  const current = data?.sandbox04;
+  if (current?.commit === entry.commit) return null;
+  if ((current?.revision || 0) !== entry.base) throw new SaveConflict();
+  const result = {
+    sandbox04: {
+      revision: entry.base + 1,
+      commit: entry.commit,
+      state: entry.state,
+    },
+  };
+  if (!data?.backupBefore05 && current) result.backupBefore05 = current;
+  return result;
+}
 // Storage and remote adapter are injected so failures/concurrent writes are testable.
 export class SaveSession {
   constructor(adapter, storage, key) {
@@ -129,9 +173,20 @@ export class SaveSession {
       throw new Error("Revisión de partida no válida");
     const state = remote ? remote.state : migrateLegacy(data);
     decodeState(state);
+    this.backup = data?.backupBefore05 || remote || { state };
     this.revision = remote?.revision || 0;
     const journal = this.readJournal();
     if (journal) {
+      if (
+        !journal.state.village &&
+        !this.storage.getItem(`${this.key}:before05-journal`)
+      ) {
+        // Preserve unsynced progress from 0.4 before consuming or replacing it.
+        this.storage.setItem(
+          `${this.key}:before05-journal`,
+          JSON.stringify(journal),
+        );
+      }
       if (remote?.commit === journal.commit) {
         this.pending = null;
         this.writeJournal();
@@ -207,25 +262,15 @@ export async function connectFirebase() {
             async commit(entry) {
               return fire.runTransaction(db, async (transaction) => {
                 const doc = await transaction.get(ref),
-                  current = doc.data()?.sandbox04;
-                if (current?.commit === entry.commit) return current.revision;
-                if ((current?.revision || 0) !== entry.base)
-                  throw new SaveConflict();
-                const revision = entry.base + 1;
-                // Replace only the new namespace; legacy fields remain untouched.
+                  data = doc.data();
+                const patch = prepareCommit(data, entry);
+                if (!patch) return data.sandbox04.revision;
                 transaction.set(
                   ref,
-                  {
-                    sandbox04: {
-                      revision,
-                      commit: entry.commit,
-                      state: entry.state,
-                    },
-                    updatedAt: fire.serverTimestamp(),
-                  },
-                  { mergeFields: ["sandbox04", "updatedAt"] },
+                  { ...patch, updatedAt: fire.serverTimestamp() },
+                  { mergeFields: [...Object.keys(patch), "updatedAt"] },
                 );
-                return revision;
+                return patch.sandbox04.revision;
               });
             },
           },

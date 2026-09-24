@@ -1,4 +1,4 @@
-# ARI CRAFT · 0.4.2
+# ARI CRAFT · 0.5.0
 
 El mundo de Ari: un sandbox voxel para explorar, recoger y construir. Funciona como web estática en GitHub Pages, sin compilación. Texturas procedurales originales; no utiliza assets de Minecraft.
 
@@ -13,6 +13,23 @@ El mundo de Ari: un sandbox voxel para explorar, recoger y construir. Funciona c
 - Si el navegador no permite capturar el ratón, aparece **Jugar con cámara al arrastrar**: arrastrar con el botón derecho para mirar; clic derecho sin arrastrar para colocar.
 
 El modo creativo ofrece césped, tierra, piedra, madera, hojas, ladrillo y ámbar desde el principio, señalados con ∞. No hace falta recoger materiales. Las partidas antiguas conservan sus bloques y cantidades históricas y pasan a creativo al cargarse. Los dos últimos espacios quedan reservados.
+
+## Aldea Girasol, animales y fútbol
+
+Desde el menú, **Visitar aldea, animales y fútbol** abre una región independiente: tres casas visitables y modificables, una plaza, dos aldeanos y un prado con dos ovejas, un cerdo y dos gallinas. Los habitantes caminan y se detienen ante los bloques; al acercarse, **Chutar / saludar** o **F** permite saludar. Los animales acompañan brevemente al jugador dentro de su prado.
+
+**Jugar al fútbol** coloca al jugador ante el balón y lo devuelve al centro sin borrar el marcador. Mirar hacia la portería y pulsar **F** o **Chutar / saludar**, a menos de 2,7 bloques del balón. Hay rebote, rozamiento, dos porterías y detección de goles; cada gol devuelve el balón al centro. El marcador cuenta goles en la portería azul y coral; no simula dos equipos. **Balón al centro** permite recuperarlo durante una partida.
+
+**Volver a mi mundo** devuelve al jugador a su posición anterior. El terreno y las construcciones originales no se regeneran. El campo está reservado para el fútbol; fuera de él se puede construir y modificar las casas. Todavía no hay portero, equipos, comercio, cría ni multijugador.
+
+### Protección de la partida anterior
+
+- Se conserva exactamente el generador 1 y la semilla del mundo original. La región nueva tiene su propio generador fijo, modificaciones, posición, habitantes y balón.
+- Se mantiene `sandbox04`, formato 4, con `village` y `location` opcionales. Una partida 0.4 válida funciona sin tener estos campos. Los datos nuevos malformados o de versión desconocida impiden la carga: no se sustituyen por un mundo nuevo.
+- La primera escritura con 0.5 añade **`backupBefore05`** al mismo documento, con el `sandbox04` anterior. Copia y actualización se escriben en la misma transacción. La copia existente no vuelve a sobrescribirse. No se crea una copia de datos de producción durante el despliegue: se crea al guardar por primera vez con la cuenta correspondiente.
+- En local, copia y actualización se escriben juntas en `ari-craft:04:demo-world`. Un diario pendiente anterior se conserva además en `<clave-del-diario>:before05-journal` antes de consumirlo.
+- **Descargar copia anterior a 0.5** exporta la copia cargada al iniciar la sesión. **Descargar copia local** exporta el estado actual o pendiente. La restauración de archivos sigue siendo una operación de soporte; no hay importador automático.
+- El viaje exige terminar el guardado. Si las reglas de Firestore rechazan el campo de copia, la transacción completa falla, el original permanece y se conserva el diario local; no se desactivan las reglas.
 
 ## Desarrollo local
 
@@ -42,9 +59,11 @@ npm test
 | `js/player.js`    | Movimiento, gravedad, salto, cámara y colisiones AABB                 |
 | `js/touch.js`     | Controles multitáctiles y propiedad independiente de cada dedo        |
 | `js/inventory.js` | Cantidades, hotbar y operaciones de recoger/colocar                   |
+| `js/village.js` | Región nueva, habitantes, balón y formato de la expansión |
+| `js/village-view.js` | Modelos originales, campo, porterías y animación |
 | `js/firebase.js`  | Google Auth, lectura, transacciones, copia local, formato y migración |
 
-La simulación utiliza pasos fijos de 1/120 s y movimientos cortos por eje. Los bloques se consultan en una cuadrícula; el renderizador dibuja únicamente las caras expuestas en 16 regiones. Una edición reconstruye la región afectada y, si corresponde, las vecinas. Las entradas de movimiento y cámara están separadas de la física para poder añadir controles táctiles después.
+La simulación utiliza pasos fijos de 1/120 s y movimientos cortos por eje. Los bloques se consultan en una cuadrícula; el renderizador dibuja únicamente las caras expuestas en 16 regiones. Una edición reconstruye la región afectada y, si corresponde, las vecinas. Las entradas de movimiento y cámara están separadas de la física y se comparten con los controles táctiles.
 
 ## Guardado y compatibilidad
 
@@ -67,14 +86,14 @@ Espera a **Guardado en la nube** antes de cambiar de dispositivo. No se depende 
 
 ## Alcance de esta versión
 
-Mundo finito de 64 × 64 columnas y 64 bloques de altura, relieve determinista, árboles, suelo irrompible en la capa 0 y límite de 10.000 modificaciones activas para mantener el documento acotado. La cámara puede quedar por encima del techo de construcción. No hay daño por caída ni multijugador simultáneo.
+Mundo finito de 64 × 64 columnas y 64 bloques de altura, relieve determinista, árboles, suelo irrompible en la capa 0 y límite de 10.000 modificaciones activas para mantener el documento acotado. La cámara puede quedar por encima del techo de construcción. La aldea es otra región del mismo tamaño, con un máximo de 2.000 modificaciones adicionales para acotar el guardado junto con la copia anterior. No hay daño por caída ni multijugador simultáneo.
 
-En móvil aparecen controles táctiles: joystick izquierdo (hasta el borde para correr), cámara al arrastrar a la derecha y botones Saltar, Romper y Colocar. Se recomienda horizontal; el aviso permite continuar en vertical. La interfaz respeta las áreas seguras y la altura visible del navegador. Pantalla completa se solicita cuando el navegador lo admite; en iPhone se explica cómo añadir el juego a la pantalla de inicio. El balón, porterías, marcador, crafting y retos pertenecen a las siguientes fases.
+En móvil aparecen controles táctiles: joystick izquierdo (hasta el borde para correr), cámara al arrastrar a la derecha y botones Saltar, Romper y Colocar. Se recomienda horizontal; el aviso permite continuar en vertical. La interfaz respeta las áreas seguras y la altura visible del navegador. Pantalla completa se solicita cuando el navegador lo admite; en iPhone se explica cómo añadir el juego a la pantalla de inicio. El crafting, los equipos y los retos pertenecen a las siguientes fases.
 
 ## GitHub Pages
 
 Se conserva el uso de rutas relativas y dependencias CDN fijadas: Three.js 0.180.0 y Firebase 12.19.0. Publicar estos archivos en la rama que ya sirve GitHub Pages no requiere cambiar Firebase ni añadir un proceso de compilación. No se han modificado reglas, proveedores, credenciales ni dominios autorizados del proyecto.
 
-Antes de publicar, comprobar el acceso real con Google y las reglas actuales con una cuenta autorizada: lectura y actualización del documento propio con el campo nuevo. No abrir permisos globales para solucionar un error. Las pruebas de nube de esta entrega usan un adaptador controlado, no la base de datos de producción.
+Al estrenar 0.5 con una cuenta real, comprobar lectura y actualización del documento propio con el campo de copia nuevo y el mensaje «Guardado en la nube». No abrir permisos globales para solucionar un error. Las pruebas de nube de esta entrega usan un adaptador controlado, no la base de datos de producción.
 
 Consulta `VALIDACION.md` para los resultados y las comprobaciones pendientes.
