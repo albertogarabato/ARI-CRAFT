@@ -1,4 +1,4 @@
-# ARI CRAFT · 0.6.0
+# ARI CRAFT · 0.6.1
 
 El mundo de Ari: un sandbox voxel para explorar, recoger y construir. Funciona como web estática en GitHub Pages, sin compilación. Texturas procedurales originales; no utiliza assets de Minecraft.
 
@@ -13,6 +13,14 @@ El mundo de Ari: un sandbox voxel para explorar, recoger y construir. Funciona c
 - Si el navegador no permite capturar el ratón, aparece **Jugar con cámara al arrastrar**: arrastrar con el botón derecho para mirar; clic derecho sin arrastrar para colocar.
 
 El modo creativo ofrece césped, tierra, piedra, madera, hojas, ladrillo y ámbar desde el principio, señalados con ∞. No hace falta recoger materiales. Las partidas antiguas conservan sus bloques y cantidades históricas y pasan a creativo al cargarse. Los dos últimos espacios quedan reservados.
+
+## Pantalla completa y acceso desde el móvil (0.6.1)
+
+El menú incluye **Añadir a pantalla de inicio**. Si Chrome ofrece instalación nativa, el botón la solicita; en otros casos abre una guía por dispositivo. Android: abrir en Chrome, menú ⋮ → Instalar aplicación o Añadir a pantalla de inicio. iPhone: Safari → Compartir → Añadir a pantalla de inicio; activar Abrir como app web si aparece. Abrir después desde el icono de ARI CRAFT.
+
+El manifiesto solicita pantalla completa y permite ambas orientaciones; el juego conserva el aviso para girar y la opción de jugar en vertical. El botón ⛶ permite entrar a pantalla completa en navegadores compatibles. Se respetan los márgenes de cámaras e indicadores del sistema. No todos los dispositivos permiten ocultar esos indicadores.
+
+Antes de cambiar al icono, guardar la partida en la nube y usar la misma cuenta de Google. Los datos locales pueden estar separados entre navegador y aplicación instalada. Esta actualización no modifica el formato, las claves ni las copias de seguridad. Requiere conexión para cargar los módulos e iniciar sesión; no incluye caché sin conexión.
 
 ## Mundo conectado (0.6)
 

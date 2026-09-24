@@ -11,13 +11,16 @@
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
+    <meta name="apple-mobile-web-app-title" content="ARI CRAFT" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
     <meta name="theme-color" content="#172f35" />
     <meta
       name="description"
       content="El mundo de Ari. Explora, imagina y construye tu propio mundo de bloques."
     />
     <title>ARI CRAFT · El mundo de Ari</title>
-    <link rel="stylesheet" href="./css/game.css?v=0.6.0" />
+    <link rel="stylesheet" href="./css/game.css?v=0.6.1" />
     <script type="importmap">
       {
         "imports": {
@@ -35,6 +38,12 @@
         </div>
         <div class="hud-status">
           <span id="saveStatus" role="status">Preparando mundo…</span
+          ><button
+            id="expandButton"
+            aria-label="Ampliar pantalla"
+            title="Ampliar pantalla"
+          >
+            ⛶</button
           ><button id="pauseButton" aria-label="Pausar juego">Ⅱ</button>
         </div>
       </header>
@@ -95,7 +104,7 @@
         <div class="eyebrow">
           <span class="status-dot"></span> MODO CREATIVO · BLOQUES ILIMITADOS
         </div>
-        <h1 id="menuTitle">ARI<span>CRAFT</span><sup>0.6.0</sup></h1>
+        <h1 id="menuTitle">ARI<span>CRAFT</span><sup>0.6.1</sup></h1>
         <p class="intro">Un camino, muchas aventuras.</p>
         <p class="description">
           Tu mundo y la aldea, unidos para explorar.<br />Nuevos amigos y un
@@ -124,6 +133,16 @@
         <button id="demoButton" class="secondary">
           Explorar una partida local
         </button>
+        <aside id="installCard">
+          <strong>Tu juego, a toda pantalla</strong>
+          <p id="installMessage">
+            Añádelo a la pantalla de inicio y ábrelo desde su icono, sin barra
+            de direcciones.
+          </p>
+          <button id="installButton" class="secondary">
+            Añadir a pantalla de inicio
+          </button>
+        </aside>
         <div class="menu-actions">
           <button id="fullscreenButton">⛶ Pantalla completa</button
           ><button id="touchModeButton">Activar controles táctiles</button
@@ -173,10 +192,6 @@
             con la cruz, elige un material arriba y toca <b>Colocar</b>. No se
             gastan. Mantén <b>Romper</b> para quitar bloques.
           </p>
-          <p id="fullscreenHelp" hidden>
-            En iPhone: abre Compartir → Añadir a pantalla de inicio y abre ARI
-            CRAFT desde su icono para aprovechar más pantalla.
-          </p>
         </div>
         <footer>
           <span>HECHO PARA IMAGINAR</span><span>ALDEA · ANIMALES · FÚTBOL</span>
@@ -208,10 +223,59 @@
         ><button id="rotateBack" class="secondary">Volver al menú</button>
       </div>
     </section>
+    <dialog id="installHelp" aria-labelledby="installTitle">
+      <h2 id="installTitle">ARI CRAFT en tu pantalla de inicio</h2>
+      <p>
+        Abre el juego desde su icono para jugar sin barra de direcciones. Gira
+        el móvil en horizontal para ver más mundo.
+      </p>
+      <details id="installAndroid">
+        <summary>Android · Chrome</summary>
+        <ol>
+          <li>Abre esta página en <b>Chrome</b>.</li>
+          <li>
+            Toca el menú <b>⋮</b> y <b>Añadir a pantalla de inicio</b> o
+            <b>Instalar aplicación</b>.
+          </li>
+          <li>Confirma y abre <b>ARI CRAFT</b> desde su nuevo icono.</li>
+        </ol>
+      </details>
+      <details id="installIphone">
+        <summary>iPhone · Safari</summary>
+        <ol>
+          <li>Abre esta página en <b>Safari</b>.</li>
+          <li>Toca <b>Compartir → Añadir a pantalla de inicio</b>.</li>
+          <li>
+            Si aparece <b>Abrir como app web</b>, actívalo. Pulsa <b>Añadir</b>.
+          </li>
+          <li>Abre <b>ARI CRAFT</b> desde su nuevo icono.</li>
+        </ol>
+      </details>
+      <details id="installDesktop">
+        <summary>Ordenador</summary>
+        <p>
+          Usa <b>Pantalla completa</b> en el menú del juego. Para volver a la
+          ventana, pulsa <b>Esc</b>. Chrome y Edge también permiten instalar el
+          juego desde su menú.
+        </p>
+      </details>
+      <p class="install-save">
+        Antes de cambiar, pulsa <b>Guardar ahora</b> y comprueba que se ha
+        guardado en la nube. En el icono nuevo, entra con
+        <b>la misma cuenta de Google</b>. La partida local solo pertenece a ese
+        navegador y puede no aparecer en la app.
+      </p>
+      <p class="install-note">
+        Necesitas conexión para abrir el juego y guardar en la nube. El móvil
+        puede mantener visibles sus indicadores del sistema.
+      </p>
+      <button id="closeInstallHelp" class="primary">Entendido</button>
+    </dialog>
+    <script type="module" src="./js/app-mode.js?v=0.6.1"></script>
     <div id="toast" role="status" hidden></div>
     <noscript>Activa JavaScript para jugar a ARI CRAFT.</noscript>
     <script type="module">
-      import("./js/game.js?v=0.6.0").catch((error) => {
+      import("./js/game.js?v=0.6.1").catch((error) => {
         console.error(error);
         document.querySelector("#menuStatus").textContent =
           "No se pudo iniciar el juego. Revisa la conexión y recarga la página.";

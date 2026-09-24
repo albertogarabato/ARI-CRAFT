@@ -1,4 +1,15 @@
-# Validación de ARI CRAFT 0.6.0
+# Validación de ARI CRAFT 0.6.1
+
+- Las 44 pruebas de lógica y persistencia continúan pasando.
+- Revisados el diálogo de instalación y sus instrucciones de iPhone a 390 × 844, y la partida con controles táctiles a 844 × 390.
+- Verificado en el navegador el botón de ampliar: pausa la partida, entra en pantalla completa y muestra «Pantalla completa activa».
+- Sin errores de consola durante la carga y la partida local.
+- Manifiesto con rutas relativas a /ARI-CRAFT/, iconos PNG 192/512 y Apple 180. No se añade un service worker que pueda retener módulos antiguos.
+- Los módulos de Firebase, inventario, mundo, jugador y copias de seguridad no se modifican.
+- Pendiente la instalación y el inicio de sesión en Android/iPhone físicos: la revisión de tamaño de pantalla no sustituye esa comprobación.
+
+## Validación previa de 0.6.0
+
 
 ## Automatización
 
