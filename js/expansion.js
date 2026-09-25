@@ -1,4 +1,4 @@
-import { World } from "./world.js?v=0.8.0";
+import { World } from "./world.js?v=0.9.0";
 export const EXPANSION_OFFSETS = [-128, -64, 160, 224];
 export const EXPANSION_LIMIT = 1500;
 // New generation is confined to previously inaccessible columns. Old terrain is untouched.
