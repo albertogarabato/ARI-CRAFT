@@ -1,4 +1,4 @@
-import { BLOCKS } from "./world.js?v=0.7.0";
+import { BLOCKS } from "./world.js?v=0.7.1";
 export const SLOTS = [1, 2, 3, 4, 5, 6, 7, 0, 0];
 export class Inventory {
   constructor({ creative = true } = {}) {

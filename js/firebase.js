@@ -1,10 +1,10 @@
-import { World, SEED } from "./world.js?v=0.7.0";
-import { Inventory } from "./inventory.js?v=0.7.0";
-import { Player } from "./player.js?v=0.7.0";
-import { Village } from "./village.js?v=0.7.0";
+import { World, SEED } from "./world.js?v=0.7.1";
+import { Inventory } from "./inventory.js?v=0.7.1";
+import { Player } from "./player.js?v=0.7.1";
+import { Village } from "./village.js?v=0.7.1";
 
 // Public web-app configuration preserved verbatim from the working prototype.
-import { Journey } from "./connected.js?v=0.7.0";
+import { Journey } from "./connected.js?v=0.7.1";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDFe32AgdruOh_sUn8_O5NGAF2NDItP5jU",

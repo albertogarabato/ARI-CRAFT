@@ -1,5 +1,5 @@
-import { World, HEIGHT } from "./world.js?v=0.7.0";
-import { Player } from "./player.js?v=0.7.0";
+import { World, HEIGHT } from "./world.js?v=0.7.1";
+import { Player } from "./player.js?v=0.7.1";
 
 // A separate, versioned region. Never modify the original world's generator.
 export const VILLAGE_EDIT_LIMIT = 2000;
