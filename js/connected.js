@@ -1,7 +1,7 @@
-import { createExpansion } from "./expansion.js?v=0.7.0";
-import { World, MIN, MAX, HEIGHT, createWorldView } from "./world.js?v=0.7.0";
-import { Player } from "./player.js?v=0.7.0";
-import { Village, onField } from "./village.js?v=0.7.0";
+import { createExpansion } from "./expansion.js?v=0.7.1";
+import { World, MIN, MAX, HEIGHT, createWorldView } from "./world.js?v=0.7.1";
+import { Player } from "./player.js?v=0.7.1";
+import { Village, onField } from "./village.js?v=0.7.1";
 
 export const VILLAGE_X = 96;
 export const LINK_X = 48;
@@ -167,7 +167,11 @@ export class Journey {
     return {
       version: this.world.expansion ? 2 : 1,
       ...(this.world.expansion
-        ? { expansion: this.world.expansion.map((r) => r.world.serialize()) }
+        ? {
+            expansion: this.world.expansion.map((r) => ({
+              edits: r.world.serialize(),
+            })),
+          }
         : {}),
       player: this.player.snapshot(),
       edits: this.world.link.serialize(),

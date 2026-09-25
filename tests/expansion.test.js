@@ -211,3 +211,24 @@ test("unsynced 0.6 journal and previous backup survive a failed first expanded s
   assert.equal(JSON.parse(memory.get("save")).state.version, 7);
   assert.deepEqual(session.backup.state, old);
 });
+test("expanded cloud payload uses Firestore-compatible maps, never arrays directly inside arrays", () => {
+  const { j, bag } = fixture();
+  j.world.expand();
+  j.world.set(-64, 20, 0, 14);
+  const state = encodeJourney(j, bag);
+  function check(value, inArray = false) {
+    if (Array.isArray(value)) {
+      assert.equal(inArray, false, "Firestore does not accept nested arrays");
+      for (const child of value) check(child, true);
+    } else if (value && typeof value === "object")
+      for (const child of Object.values(value)) check(child, false);
+  }
+  check(prepareCommit({}, { base: 0, commit: "first", state }));
+  const oldPreview = structuredClone(state);
+  oldPreview.connected.expansion = state.connected.expansion.map(
+    (r) => r.edits,
+  );
+  const loaded = decodeState(oldPreview);
+  assert.equal(loaded.journey.world.get(-64, 20, 0), 14);
+  check(encodeJourney(loaded.journey, loaded.inventory));
+});

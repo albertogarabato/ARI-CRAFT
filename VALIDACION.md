@@ -1,6 +1,6 @@
-# Validación de ARI CRAFT 0.7.0
+# Validación de ARI CRAFT 0.7.1
 
-53 pruebas pasan: las 44 regresiones anteriores y nueve casos nuevos de ampliación, inventario, recetas y copias.
+54 pruebas pasan: las 44 regresiones anteriores y diez casos nuevos de ampliación, inventario, recetas y copias.
 
 - Se compararon todos los bytes del generador original contra 0.6.1 para la semilla por defecto, una alternativa y el modo heredado: idénticos.
 - La ampliación conserva el terreno original, modificaciones, posición, habitantes y marcador.
@@ -10,6 +10,10 @@
 - Recorrido continuo andando por el borde occidental y regreso, sin portales; límites y capacidad de modificaciones comprobados.
 - La copia previa se conserva atómicamente; conflictos, diarios antiguos y fallos de escritura no sobrescriben el original.
 - Los datos incompletos o inválidos de ampliación se rechazan; no se sustituyen por regiones vacías.
+
+- Se comprueba que el contenido enviado a Firestore no incluye listas directamente anidadas. Cada región se serializa como un objeto con su lista de cambios; la lectura sigue admitiendo la forma anterior para conservar diarios locales.
+
+- Además se validó el contenido real con Firebase SDK 12.19.0: acepta el estado ampliado y su copia, y rechaza el control negativo de listas anidadas. Se utilizó un proyecto ficticio y no se enviaron escrituras.
 
 ## Navegador
 

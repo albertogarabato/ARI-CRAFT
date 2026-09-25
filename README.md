@@ -1,4 +1,4 @@
-# ARI CRAFT · 0.7.0
+# ARI CRAFT · 0.7.1
 
 El mundo de Ari: un sandbox voxel para explorar, recoger y construir. Funciona como web estática en GitHub Pages, sin compilación. Texturas procedurales originales; no utiliza assets de Minecraft.
 

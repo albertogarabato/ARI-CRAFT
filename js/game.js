@@ -1,14 +1,14 @@
-import { enterFullscreen } from "./app-mode.js?v=0.7.0";
+import { enterFullscreen } from "./app-mode.js?v=0.7.1";
 import * as THREE from "three";
-import { bindTouchControls } from "./touch.js?v=0.7.0";
-import { World, BLOCKS, createWorldView } from "./world.js?v=0.7.0";
-import { Player } from "./player.js?v=0.7.0";
+import { bindTouchControls } from "./touch.js?v=0.7.1";
+import { World, BLOCKS, createWorldView } from "./world.js?v=0.7.1";
+import { Player } from "./player.js?v=0.7.1";
 import {
   Inventory,
   RECIPES,
   mineBlock,
   placeBlock,
-} from "./inventory.js?v=0.7.0";
+} from "./inventory.js?v=0.7.1";
 import {
   connectFirebase,
   SaveSession,
@@ -17,14 +17,14 @@ import {
   encodeJourney,
   decodeState,
   prepareCommit,
-} from "./firebase.js?v=0.7.0";
+} from "./firebase.js?v=0.7.1";
 
 import {
   Journey,
   VILLAGE_X,
   createConnectedView,
-} from "./connected.js?v=0.7.0";
-import { createVillageView } from "./village-view.js?v=0.7.0";
+} from "./connected.js?v=0.7.1";
+import { createVillageView } from "./village-view.js?v=0.7.1";
 let journey = null,
   navigationTarget = "village",
   navigationTime = 0;
@@ -420,7 +420,13 @@ function install(state) {
       : "Tu mundo se guarda automáticamente. Espera a «Guardado en la nube» antes de continuar en otro dispositivo.";
   status(mode === "local" ? "Partida local" : "Mundo cargado");
   // Persist migration/new state only after a successful remote read and validation.
-  if (!session.revision || session.pending || state.version !== 7) changed();
+  if (
+    !session.revision ||
+    session.pending ||
+    state.version !== 7 ||
+    Array.isArray(state.connected?.expansion?.[0])
+  )
+    changed();
 }
 async function loadSession(nextSession, nextMode) {
   const token = ++loadToken;

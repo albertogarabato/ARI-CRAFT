@@ -1,11 +1,13 @@
-import { World } from "./world.js?v=0.7.0";
+import { World } from "./world.js?v=0.7.1";
 export const EXPANSION_OFFSETS = [-128, -64, 160, 224];
 export const EXPANSION_LIMIT = 1500;
 // New generation is confined to previously inaccessible columns. Old terrain is untouched.
 export function createExpansion(home, village, saved) {
   if (
     saved !== undefined &&
-    (!Array.isArray(saved) || saved.length !== 4 || !saved.every(Array.isArray))
+    (!Array.isArray(saved) ||
+      saved.length !== 4 ||
+      !saved.every((r) => Array.isArray(r) || (r && Array.isArray(r.edits))))
   )
     throw Error("Ampliación guardada incompleta");
   return EXPANSION_OFFSETS.map((offset, index) => {
@@ -43,7 +45,8 @@ export function createExpansion(home, village, saved) {
         return false;
       return set(x, y, z, t);
     };
-    const edits = saved?.[index] || [];
+    const region = saved?.[index];
+    const edits = Array.isArray(region) ? region : region?.edits || [];
     if (!Array.isArray(edits) || edits.length > EXPANSION_LIMIT * 4)
       throw Error("Demasiados cambios en la ampliación");
     w.restore(edits);
