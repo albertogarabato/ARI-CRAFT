@@ -1,14 +1,14 @@
-import { enterFullscreen } from "./app-mode.js?v=0.7.1";
+import { enterFullscreen } from "./app-mode.js?v=0.8.0";
 import * as THREE from "three";
-import { bindTouchControls } from "./touch.js?v=0.7.1";
-import { World, BLOCKS, createWorldView } from "./world.js?v=0.7.1";
-import { Player } from "./player.js?v=0.7.1";
+import { bindTouchControls } from "./touch.js?v=0.8.0";
+import { World, BLOCKS, createWorldView } from "./world.js?v=0.8.0";
+import { Player } from "./player.js?v=0.8.0";
 import {
   Inventory,
   RECIPES,
   mineBlock,
   placeBlock,
-} from "./inventory.js?v=0.7.1";
+} from "./inventory.js?v=0.8.0";
 import {
   connectFirebase,
   SaveSession,
@@ -17,14 +17,14 @@ import {
   encodeJourney,
   decodeState,
   prepareCommit,
-} from "./firebase.js?v=0.7.1";
+} from "./firebase.js?v=0.8.0";
 
 import {
   Journey,
   VILLAGE_X,
   createConnectedView,
-} from "./connected.js?v=0.7.1";
-import { createVillageView } from "./village-view.js?v=0.7.1";
+} from "./connected.js?v=0.8.0";
+import { createVillageView } from "./village-view.js?v=0.8.0";
 let journey = null,
   navigationTarget = "village",
   navigationTime = 0;
@@ -381,6 +381,7 @@ function install(state) {
   player = journey.player;
   home = journey.home;
   village = journey.village;
+  village.enableMatch();
   region = journey.region;
   view = createConnectedView(THREE, journey, scene);
   view.update();
@@ -423,7 +424,7 @@ function install(state) {
   if (
     !session.revision ||
     session.pending ||
-    state.version !== 7 ||
+    state.version !== 8 ||
     Array.isArray(state.connected?.expansion?.[0])
   )
     changed();
@@ -481,6 +482,7 @@ function updateTravelUI() {
   $("travelButton").textContent = "Mirar hacia la aldea →";
   $("footballButton").textContent = "Mirar hacia el campo ⚽";
   $("villageHud").hidden = !visiting;
+  $("matchInstructions").hidden = !visiting;
   $("resetBallButton").hidden = !visiting;
   $("regionLabel").textContent = visiting
     ? "ALDEA GIRASOL"
@@ -494,8 +496,9 @@ function updateTravelUI() {
 }
 function updateNavigation() {
   if (!journey) return;
-  const target =
-    navigationTarget === "meadow"
+  const target = village?.match?.active
+    ? { x: VILLAGE_X + 15, z: -8, name: "Portería Coral" }
+    : navigationTarget === "meadow"
       ? { x: -64, z: -6, name: "Praderas de construcción" }
       : navigationTarget === "home"
         ? { x: 0.5, z: 3.5, name: "Mi mundo" }
@@ -549,12 +552,13 @@ $("footballButton").onclick = () => faceDestination("field");
 $("homeButton").onclick = () => faceDestination("home");
 function updateScore() {
   $("score").textContent =
-    `Azul ${village.football.score[0]} · ${village.football.score[1]} Coral`;
+    `Blanco ${village.football.score[0]} · ${village.football.score[1]} Coral`;
 }
 function villageAction() {
   if (!playing || region !== "village") return;
   journey.syncAnchors();
   if (village.football.kick(village.player)) {
+    village.match?.humanKick();
     changed();
     toast("¡Chut!");
     return;
@@ -562,13 +566,14 @@ function villageAction() {
   const message = village.interact();
   toast(
     message ||
-      "Acércate al balón y mira hacia la portería. Usa Chutar o F. También puedes saludar a los vecinos.",
+      "Juegas con el Blanco 7. Ataca hacia la portería coral. Acércate al balón y pulsa Chutar o F.",
   );
 }
 $("actionButton").onclick = villageAction;
 $("resetBallButton").onclick = () => {
   if (ready && village) {
     village.football.reset();
+    village.match?.reset();
     village.football.cooldown = 0;
     villageView?.update();
     changed();
@@ -675,7 +680,7 @@ function downloadCopy(raw) {
     url = URL.createObjectURL(blob),
     a = document.createElement("a");
   a.href = url;
-  a.download = `ari-craft-07-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `ari-craft-08-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -944,11 +949,19 @@ function frame(now) {
       player.update(1 / 120, input);
       journey.syncAnchors();
       {
-        const goal = village.update(1 / 120);
+        const p = village.player.position;
+        const matchActive =
+          journey.region === "village" &&
+          p.x >= 6 &&
+          p.x <= 24 &&
+          p.z >= -8 &&
+          p.z <= 20 &&
+          Math.abs(p.y - 9) < 2;
+        const goal = village.update(1 / 120, { matchActive });
         if (goal !== null) {
           updateScore();
           toast(
-            `¡GOL en la portería ${goal === 0 ? "azul" : "coral"}! Balón al centro.`,
+            `¡GOL del equipo ${goal === 0 ? "blanco" : "coral"}! Balón al centro.`,
           );
           dirty = true;
         }

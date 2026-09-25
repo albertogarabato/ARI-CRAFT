@@ -1200,3 +1200,12 @@ select {
     margin-left: 0;
   }
 }
+#matchInstructions {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  line-height: 1.6;
+  border-left: 3px solid #d6b24d;
+  padding: 12px;
+  background: #17343bdd;
+  color: #f7f3e8;
+}

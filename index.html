@@ -20,7 +20,7 @@
       content="El mundo de Ari. Explora, imagina y construye tu propio mundo de bloques."
     />
     <title>ARI CRAFT · El mundo de Ari</title>
-    <link rel="stylesheet" href="./css/game.css?v=0.7.1" />
+    <link rel="stylesheet" href="./css/game.css?v=0.8.0" />
     <script type="importmap">
       {
         "imports": {
@@ -78,7 +78,7 @@
         >
       </div>
       <div id="villageHud" hidden>
-        <span id="score" role="status">Azul 0 · 0 Coral</span
+        <span id="score" role="status">Blanco 0 · 0 Coral</span
         ><button id="actionButton">⚽ Chutar / saludar <small>F</small></button>
       </div>
       <button id="materialsButton">▦ Materiales y taller</button>
@@ -106,7 +106,7 @@
           <span class="status-dot"></span
           ><span id="modeLabel">EXPLORA · RECOGE · CONSTRUYE</span>
         </div>
-        <h1 id="menuTitle">ARI<span>CRAFT</span><sup>0.7.1</sup></h1>
+        <h1 id="menuTitle">ARI<span>CRAFT</span><sup>0.8.0</sup></h1>
         <p class="intro">Más mundo. Más posibilidades.</p>
         <p class="description">
           Grandes praderas para tus construcciones.<br />Materiales nuevos,
@@ -153,6 +153,12 @@
           </select>
           <p id="modeHint"></p>
         </section>
+        <p id="matchInstructions" hidden>
+          ⚽ Entra en el campo para jugar con <b>Blanco 7</b>: equipo blanco y
+          dorado inspirado en el Real Madrid. Atacad la <b>portería coral</b>.
+          Acércate al balón y pulsa <b>Chutar</b> o <b>F</b>. Al salir del
+          campo, el partido se detiene.
+        </p>
         <div class="menu-actions">
           <button id="fullscreenButton">⛶ Pantalla completa</button
           ><button id="touchModeButton" disabled>
@@ -231,7 +237,8 @@
           </p>
         </div>
         <footer>
-          <span>HECHO PARA IMAGINAR</span><span>ALDEA · ANIMALES · FÚTBOL</span>
+          <span>HECHO PARA IMAGINAR</span
+          ><span>ALDEA · CONSTRUCCIÓN · EQUIPO BLANCO</span>
         </footer>
       </div>
       <div class="world-caption">
@@ -308,11 +315,11 @@
       </p>
       <button id="closeInstallHelp" class="primary">Entendido</button>
     </dialog>
-    <script type="module" src="./js/app-mode.js?v=0.7.1"></script>
+    <script type="module" src="./js/app-mode.js?v=0.8.0"></script>
     <div id="toast" role="status" hidden></div>
     <noscript>Activa JavaScript para jugar a ARI CRAFT.</noscript>
     <script type="module">
-      import("./js/game.js?v=0.7.1").catch((error) => {
+      import("./js/game.js?v=0.8.0").catch((error) => {
         console.error(error);
         document.querySelector("#menuStatus").textContent =
           "No se pudo iniciar el juego. Revisa la conexión y recarga la página.";

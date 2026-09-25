@@ -1,7 +1,7 @@
-import { createExpansion } from "./expansion.js?v=0.7.1";
-import { World, MIN, MAX, HEIGHT, createWorldView } from "./world.js?v=0.7.1";
-import { Player } from "./player.js?v=0.7.1";
-import { Village, onField } from "./village.js?v=0.7.1";
+import { createExpansion } from "./expansion.js?v=0.8.0";
+import { World, MIN, MAX, HEIGHT, createWorldView } from "./world.js?v=0.8.0";
+import { Player } from "./player.js?v=0.8.0";
+import { Village, onField } from "./village.js?v=0.8.0";
 
 export const VILLAGE_X = 96;
 export const LINK_X = 48;

@@ -66,8 +66,8 @@ export function createVillageView(THREE, village, scene) {
   ring.rotation.x = -Math.PI / 2;
   ring.position.set(15, 9.035, 6);
   root.add(ring);
-  label("AZUL", 15, 12.5, -9, 2.5);
-  label("CORAL", 15, 12.5, 21, 2.5);
+  label("PORTERÍA CORAL", 15, 12.5, -9, 3.7);
+  label("PORTERÍA BLANCA", 15, 12.5, 21, 3.7);
   box(root, 3.5, 10, 7, 0.15, 2, 0.15, "#846447");
   label("CAMPO DE ARI →", 3.5, 11.3, 7, 3.4);
   label("ALDEA GIRASOL", -12, 16.8, -18, 6);
@@ -143,6 +143,76 @@ export function createVillageView(THREE, village, scene) {
     const name = label(r.name, 0, 0, 0, 1.35);
     return { r, group, legs, name };
   });
+  const kitMaterials = [],
+    kitGeometry = new THREE.PlaneGeometry(0.32, 0.42);
+  const footballers = (village.match?.players || []).map((p) => {
+    const group = new THREE.Group();
+    root.add(group);
+    const kit = p.keeper
+      ? p.team === 0
+        ? "#8263bf"
+        : "#429775"
+      : p.team === 0
+        ? "#faf8ef"
+        : "#e87769";
+    const trim = p.team === 0 ? "#d6b24d" : "#213e50";
+    const legs = [],
+      arms = [];
+    box(group, 0, 1.05, 0, 0.58, 0.65, 0.36, kit);
+    box(group, 0, 0.7, 0, 0.57, 0.25, 0.36, kit);
+    box(group, 0, 1.4, 0, 0.22, 0.1, 0.24, trim);
+    box(group, 0, 1.69, 0, 0.44, 0.47, 0.42, p.skin);
+    box(group, 0, 1.94, 0.035, 0.47, 0.12, 0.42, p.hair);
+    box(group, 0, 1.82, 0.19, 0.47, 0.23, 0.06, p.hair);
+    for (const x of [-0.12, 0.12])
+      box(group, x, 1.72, -0.221, 0.055, 0.055, 0.025, "#24333d");
+    for (const x of [-0.17, 0.17]) {
+      const leg = new THREE.Group();
+      leg.position.set(x, 0.65, 0);
+      group.add(leg);
+      box(leg, 0, -0.19, 0, 0.19, 0.35, 0.22, p.skin);
+      box(leg, 0, -0.43, 0, 0.2, 0.23, 0.24, kit);
+      box(leg, 0, -0.58, -0.07, 0.23, 0.15, 0.39, "#29333e");
+      legs.push(leg);
+    }
+    for (const x of [-0.4, 0.4]) {
+      const arm = new THREE.Group();
+      arm.position.set(x, 1.25, 0);
+      group.add(arm);
+      box(arm, 0, -0.1, 0, 0.18, 0.27, 0.24, kit);
+      box(arm, 0, -0.25, 0, 0.19, 0.06, 0.25, trim);
+      box(arm, 0, -0.4, 0, 0.17, 0.29, 0.21, p.skin);
+      if (p.keeper) box(arm, 0, -0.55, -0.02, 0.23, 0.2, 0.27, "#eaf1db");
+      arms.push(arm);
+    }
+    for (const x of [-0.24, 0.24])
+      box(group, x, 1.1, -0.188, 0.045, 0.47, 0.025, trim);
+    const canvas = document.createElement("canvas");
+    canvas.width = 96;
+    canvas.height = 128;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = p.team === 0 ? "#a58430" : "#17343b";
+    ctx.font = "bold 98px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(p.number), 48, 68);
+    const texture = new THREE.CanvasTexture(canvas);
+    textures.push(texture);
+    const jersey = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      depthWrite: false,
+    });
+    kitMaterials.push(jersey);
+    for (const side of [-1, 1]) {
+      const number = new THREE.Mesh(kitGeometry, jersey);
+      number.position.set(0, 1.04, side * 0.192);
+      number.rotation.y = side < 0 ? Math.PI : 0;
+      group.add(number);
+    }
+    const name = label(p.name, 0, 0, 0, p.keeper ? 2.2 : 1.65);
+    return { p, group, legs, arms, name };
+  });
   const ballGeometry = new THREE.IcosahedronGeometry(0.32, 1);
   const positions = ballGeometry.getAttribute("position"),
     colors = [];
@@ -189,6 +259,26 @@ export function createVillageView(THREE, village, scene) {
         );
         name.position.set(p.x, p.y + (r.kind === "villager" ? 2.3 : 1.6), p.z);
       }
+      for (const { p, group, legs, arms, name } of footballers) {
+        group.position.set(p.x, 9, p.z);
+        group.rotation.y = p.yaw;
+        legs.forEach(
+          (leg, i) =>
+            (leg.rotation.x =
+              p.swing > 0 && i === 0
+                ? -Math.sin((p.swing / 0.3) * Math.PI) * 0.9
+                : p.moving
+                  ? Math.sin(p.phase * 11 + i * Math.PI) * 0.45
+                  : 0),
+        );
+        arms.forEach((arm, i) => {
+          arm.rotation.x = p.moving
+            ? -Math.sin(p.phase * 11 + i * Math.PI) * 0.3
+            : 0;
+          arm.rotation.z = p.keeper ? (i === 0 ? 0.45 : -0.45) : 0;
+        });
+        name.position.set(p.x, 11.35, p.z);
+      }
       const b = village.football.ball;
       ball.position.set(b.x, b.y, b.z);
       ball.rotation.x += b.vz * dt;
@@ -198,6 +288,8 @@ export function createVillageView(THREE, village, scene) {
     dispose() {
       scene.remove(root);
       cube.dispose();
+      kitGeometry.dispose();
+      for (const m of kitMaterials) m.dispose();
       ringGeometry.dispose();
       ballGeometry.dispose();
       ballMaterial.dispose();
