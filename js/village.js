@@ -1,5 +1,6 @@
-import { World, HEIGHT } from "./world.js?v=0.7.1";
-import { Player } from "./player.js?v=0.7.1";
+import { FootballTeam } from "./football-team.js?v=0.8.0";
+import { World, HEIGHT } from "./world.js?v=0.8.0";
+import { Player } from "./player.js?v=0.8.0";
 
 // A separate, versioned region. Never modify the original world's generator.
 export const VILLAGE_EDIT_LIMIT = 2000;
@@ -316,6 +317,8 @@ export class Village {
     this.player.pitch = -0.18;
     if (saved) this.player.restore(saved.player);
     this.football = new Football(saved?.football);
+    this.match =
+      saved?.match === undefined ? null : new FootballTeam(saved.match);
     if (
       saved &&
       (!Array.isArray(saved.residents) ||
@@ -353,6 +356,9 @@ export class Village {
       return { ...r, actor, phase: i * 1.7, follow: 0 };
     });
   }
+  enableMatch() {
+    if (!this.match) this.match = new FootballTeam();
+  }
   connectEntrance() {
     const occupied = [...this.world.edits.keys()].some((k) => {
       const [x, , z] = k.split(",").map(Number);
@@ -384,7 +390,7 @@ export class Village {
       ? `${nearby.name}: ¡Hola, Ari! El campo está al este. Acércate al balón y pulsa Chutar o F.`
       : `${nearby.name} te acompaña por el prado.`;
   }
-  update(dt) {
+  update(dt, { matchActive = false, human = this.player } = {}) {
     for (const r of this.residents) {
       r.phase += dt;
       r.follow = Math.max(0, r.follow - dt);
@@ -417,11 +423,16 @@ export class Village {
         r.actor.velocity.z = 0;
       }
     }
-    return this.football.update(dt);
+    this.match?.update(dt, this.football, human, matchActive);
+    if (this.match && !matchActive) return null;
+    const goal = this.football.update(dt);
+    if (goal !== null) this.match?.reset();
+    return goal;
   }
   snapshot() {
     return {
       ...(this.entrance ? { entrance: true } : {}),
+      ...(this.match ? { match: this.match.snapshot() } : {}),
       version: 1,
       edits: this.world.serialize(),
       player: this.player.snapshot(),

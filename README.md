@@ -1,6 +1,16 @@
-# ARI CRAFT · 0.7.1
+# ARI CRAFT · 0.8.0
 
 El mundo de Ari: un sandbox voxel para explorar, recoger y construir. Funciona como web estática en GitHub Pages, sin compilación. Texturas procedurales originales; no utiliza assets de Minecraft.
+
+## Partido con futbolistas (0.8)
+
+Ari juega junto a **Blanco 7**, con una equipación original blanca y dorada inspirada en el Real Madrid. Enfrente hay dos jugadores coral; cada equipo tiene portero. Entrar físicamente en el campo inicia el partido. Salir del césped o pausar detiene futbolistas, balón y marcador. La guía señala la portería coral, que es el objetivo del equipo blanco.
+
+El compañero persigue el balón, se desmarca cuando Ari está cerca de él, pasa a Ari cuando está a distancia y chuta a portería. Los rivales atacan la portería blanca; los porteros siguen lateralmente el balón y despejan tiros bajos. Son personajes originales con dorsales, sin recreaciones de jugadores concretos. La IA es sencilla: no hay faltas, fuera de juego ni duración reglamentaria.
+
+El antiguo marcador Azul pasa a llamarse Blanco sin cambiar sus goles. Chutar / F sigue funcionando; Balón al centro recoloca también a los jugadores sin borrar el marcador. Se conservan terreno, inventario, modo y construcciones.
+
+El formato 8 guarda la plantilla y sus tiempos entre golpes. Al primer guardado, `backupBefore08` conserva la partida anterior atómicamente; los diarios previos quedan en `:before08-journal`, y las copias existentes no se reemplazan.
 
 ## Jugar y construir (0.7)
 
@@ -21,7 +31,7 @@ El formato 7 guarda las cuatro regiones nuevas, la posición global, cantidades,
 
 Al primer guardado de una partida anterior, la transacción conserva su estado en `backupBefore07`, sin reemplazar `backupBefore05` ni `backupBefore06`. Los diarios locales anteriores quedan en `:before07-journal`. **Descargar copia anterior a la actualización** exporta el respaldo más reciente. Un fallo de escritura mantiene la partida original remota y la copia local pendiente; no se reinicia el mundo. No se han cambiado reglas ni configuración de Firebase.
 
-Los futbolistas y las aldeas adicionales siguen pendientes de la siguiente fase. El campo actual, animales, vecinos y marcador se conservan.
+Los futbolistas se añaden en 0.8. Los escenarios adicionales y más formas de piezas siguen pendientes.
 
 ## Pantalla completa y acceso desde el móvil (0.6.1)
 

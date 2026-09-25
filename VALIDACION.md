@@ -1,3 +1,16 @@
+# Validación de ARI CRAFT 0.8.0
+
+62 pruebas pasan: las 54 anteriores y ocho casos nuevos de plantilla, pases/disparos, paradas, simulación con goles, pausa al salir del campo, migración, rechazo de datos inválidos y recarga tras un gol.
+
+- Conservados terreno, inventario, modo, marcador y copias antiguas; respaldo 08 atómico.
+- Simulación de 150 segundos con movimiento y goles, sin jugadores fuera de los límites.
+- Verificados pases a Ari, prioridad temporal de su disparo, defensa del portero y balones altos.
+- Galería visual: equipación blanca/dorada, dorsales y porteros diferenciados, animaciones y porterías identificadas.
+- Prueba integrada desde una partida ficticia 0.7 con marcador 5–0: mantiene el marcador, añade los equipos y se juega con controles táctiles a 844 × 390. Chutar permanece separado de Saltar. Sin errores de consola.
+- No se ha accedido a la partida real de Ari ni se han cambiado configuración o reglas de Firebase. Pendiente prueba en móviles físicos y primer guardado con la cuenta real.
+
+## Validación anterior
+
 # Validación de ARI CRAFT 0.7.1
 
 54 pruebas pasan: las 44 regresiones anteriores y diez casos nuevos de ampliación, inventario, recetas y copias.
