@@ -1,3 +1,24 @@
+# Validación de ARI CRAFT 0.7.0
+
+53 pruebas pasan: las 44 regresiones anteriores y nueve casos nuevos de ampliación, inventario, recetas y copias.
+
+- Se compararon todos los bytes del generador original contra 0.6.1 para la semilla por defecto, una alternativa y el modo heredado: idénticos.
+- La ampliación conserva el terreno original, modificaciones, posición, habitantes y marcador.
+- Todos los nuevos materiales se guardan y recuperan en las cuatro regiones nuevas, junto con modo y barra.
+- Los ocho contadores antiguos se amplían con ceros sin perder cantidades o selección.
+- Fabricar consume exactamente los ingredientes; falta de recursos o inventario lleno no causa cambios parciales. Recoger y colocar conservan unidades en modo con recursos.
+- Recorrido continuo andando por el borde occidental y regreso, sin portales; límites y capacidad de modificaciones comprobados.
+- La copia previa se conserva atómicamente; conflictos, diarios antiguos y fallos de escritura no sobrescriben el original.
+- Los datos incompletos o inválidos de ampliación se rechazan; no se sustituyen por regiones vacías.
+
+## Navegador
+
+Probada una partida local anterior: carga en recursos, cambio a creativo, elección de una pieza azul, vuelta a recursos, guardado y recarga conservando selección y cantidad. Acceso al taller desde el juego, ingredientes sin existencias deshabilitados y lienzo ajustado a 844 × 390. Sin errores de consola en estas comprobaciones. Galería de prueba con salientes y ventanas revisada visualmente.
+
+No se ha leído ni modificado la partida de Google de Ari para realizar estas pruebas. La copia real previa se crea al primer guardado de esa cuenta. No se ha probado en un móvil físico; se requiere comprobar rendimiento y autenticación en Android/iPhone reales.
+
+## Validación de entregas anteriores
+
 # Validación de ARI CRAFT 0.6.1
 
 - Las 44 pruebas de lógica y persistencia continúan pasando.

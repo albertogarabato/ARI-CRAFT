@@ -1,27 +1,40 @@
-import { BLOCKS } from "./world.js";
+import { BLOCKS } from "./world.js?v=0.7.0";
 export const SLOTS = [1, 2, 3, 4, 5, 6, 7, 0, 0];
 export class Inventory {
   constructor({ creative = true } = {}) {
     this.creative = creative;
-    this.counts = Array(8).fill(0);
+    this.counts = Array(BLOCKS.length).fill(0);
     this.selected = 0;
+    this.slots = [...SLOTS];
   }
   get type() {
-    return SLOTS[this.selected];
+    return this.slots[this.selected];
   }
   select(index) {
     if (Number.isInteger(index) && index >= 0 && index < 9)
       this.selected = index;
   }
   add(type) {
-    if (type > 0 && type < 8 && this.counts[type] < 99999) {
+    if (
+      Number.isInteger(type) &&
+      type > 0 &&
+      type !== 8 &&
+      type < BLOCKS.length &&
+      this.counts[type] < 99999
+    ) {
       this.counts[type]++;
       return true;
     }
     return false;
   }
   take(type) {
-    if (type > 0 && type < 8 && this.counts[type] > 0) {
+    if (
+      Number.isInteger(type) &&
+      type > 0 &&
+      type !== 8 &&
+      type < BLOCKS.length &&
+      this.counts[type] > 0
+    ) {
       this.counts[type]--;
       return true;
     }
@@ -30,6 +43,7 @@ export class Inventory {
   snapshot() {
     return {
       counts: [...this.counts],
+      slots: [...this.slots],
       selected: this.selected,
       creative: this.creative,
     };
@@ -38,7 +52,7 @@ export class Inventory {
     if (
       !data ||
       !Array.isArray(data.counts) ||
-      data.counts.length !== 8 ||
+      ![8, BLOCKS.length].includes(data.counts.length) ||
       !data.counts.every((n) => Number.isInteger(n) && n >= 0 && n <= 99999) ||
       !Number.isInteger(data.selected) ||
       data.selected < 0 ||
@@ -48,13 +62,52 @@ export class Inventory {
       throw new Error("Inventario guardado no válido");
     // Saves from 0.4/0.4.1 become creative without changing their blocks or counts.
     this.creative = data.creative ?? true;
-    this.counts = [...data.counts];
+    if (
+      data.slots !== undefined &&
+      (!Array.isArray(data.slots) ||
+        data.slots.length !== 9 ||
+        !data.slots.every(
+          (t) => Number.isInteger(t) && t >= 0 && t !== 8 && t < BLOCKS.length,
+        ))
+    )
+      throw new Error("Barra guardada no válida");
+    this.slots = data.slots ? [...data.slots] : [...SLOTS];
+    this.counts = Array.from(
+      { length: BLOCKS.length },
+      (_, i) => data.counts[i] || 0,
+    );
+    this.counts[8] = 0;
     this.counts[0] = 0;
     this.selected = data.selected;
   }
+  equip(type) {
+    if (
+      !Number.isInteger(type) ||
+      type <= 0 ||
+      type === 8 ||
+      type >= BLOCKS.length
+    )
+      return false;
+    this.slots[this.selected] = type;
+    return true;
+  }
+  craft(recipe) {
+    if (!RECIPES.includes(recipe)) return false;
+    if (!this.creative) {
+      if (
+        this.counts[recipe.type] + recipe.quantity > 99999 ||
+        recipe.cost.some(([t, n]) => this.counts[t] < n)
+      )
+        return false;
+      for (const [t, n] of recipe.cost) this.counts[t] -= n;
+      this.counts[recipe.type] += recipe.quantity;
+    }
+    this.equip(recipe.type);
+    return true;
+  }
   render(container, onSelect) {
     container.replaceChildren();
-    SLOTS.forEach((type, index) => {
+    this.slots.forEach((type, index) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "slot";
@@ -120,3 +173,41 @@ export function placeBlock(world, inventory, player, hit) {
   if (!inventory.creative) inventory.take(type);
   return true;
 }
+
+export const RECIPES = [
+  { type: 11, quantity: 4, cost: [[4, 1]] },
+  { type: 12, quantity: 1, cost: [[3, 1]] },
+  { type: 9, quantity: 2, cost: [[2, 2]] },
+  {
+    type: 10,
+    quantity: 2,
+    cost: [
+      [9, 2],
+      [3, 1],
+    ],
+  },
+  {
+    type: 6,
+    quantity: 4,
+    cost: [
+      [3, 2],
+      [2, 1],
+    ],
+  },
+  {
+    type: 7,
+    quantity: 2,
+    cost: [
+      [9, 2],
+      [3, 2],
+    ],
+  },
+  ...[13, 14, 15, 16, 17].map((type) => ({
+    type,
+    quantity: 4,
+    cost: [
+      [12, 2],
+      [5, 1],
+    ],
+  })),
+];
