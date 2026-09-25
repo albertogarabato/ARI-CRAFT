@@ -1,3 +1,20 @@
+# Validación de ARI CRAFT 0.9.0
+
+71 pruebas pasan: las 62 anteriores y nueve casos de escenarios, recorridos, puertas, moldes y conservación.
+
+- Comparación del terreno anterior, construcciones, inventario y fútbol tras ampliar y recargar.
+- Generación determinista de los tres escenarios; edificios editables y cambios persistentes.
+- Recorrido con física desde el mundo anterior por los tres escenarios y regreso; puertas de las cinco casas transitables.
+- Posición dentro de cada escenario conservada sin alterar las posiciones antiguas de respaldo; zonas fuera del mundo rechazadas.
+- Moldes en cuatro orientaciones, consumo exacto y recuperación al romper; fallos por existencias, espacio, campo protegido, borde o capacidad sin cambios parciales.
+- Formato 9 y copia previa atómica, conflictos, datos inválidos y ausencia de listas directamente anidadas.
+- Firebase SDK 12.19.0 acepta el contenido del guardado y su copia; control negativo rechazado. Sin enviar escrituras.
+- Navegador: colocación de arco azul en la parcela (30 → 23 unidades), guardado y recarga conservando cantidad y molde. Sin errores de consola. Revisión visual de aldeas, caminos y zona de piezas.
+
+No se ha leído ni modificado la cuenta real de Ari. Pendientes primer guardado con su cuenta y rendimiento en móviles físicos.
+
+## Historial
+
 # Validación de ARI CRAFT 0.8.0
 
 62 pruebas pasan: las 54 anteriores y ocho casos nuevos de plantilla, pases/disparos, paradas, simulación con goles, pausa al salir del campo, migración, rechazo de datos inválidos y recarga tras un gol.

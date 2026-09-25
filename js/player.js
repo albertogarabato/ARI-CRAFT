@@ -1,4 +1,4 @@
-import { MIN, MAX, HEIGHT } from "./world.js?v=0.8.0";
+import { MIN, MAX, HEIGHT } from "./world.js?v=0.9.0";
 const RADIUS = 0.3,
   BODY = 1.8,
   EYE = 1.62,

@@ -1,6 +1,6 @@
-import { FootballTeam } from "./football-team.js?v=0.8.0";
-import { World, HEIGHT } from "./world.js?v=0.8.0";
-import { Player } from "./player.js?v=0.8.0";
+import { FootballTeam } from "./football-team.js?v=0.9.0";
+import { World, HEIGHT } from "./world.js?v=0.9.0";
+import { Player } from "./player.js?v=0.9.0";
 
 // A separate, versioned region. Never modify the original world's generator.
 export const VILLAGE_EDIT_LIMIT = 2000;

@@ -1,10 +1,10 @@
-import { World, SEED } from "./world.js?v=0.8.0";
-import { Inventory } from "./inventory.js?v=0.8.0";
-import { Player } from "./player.js?v=0.8.0";
-import { Village } from "./village.js?v=0.8.0";
+import { World, SEED } from "./world.js?v=0.9.0";
+import { Inventory } from "./inventory.js?v=0.9.0";
+import { Player } from "./player.js?v=0.9.0";
+import { Village } from "./village.js?v=0.9.0";
 
 // Public web-app configuration preserved verbatim from the working prototype.
-import { Journey } from "./connected.js?v=0.8.0";
+import { Journey } from "./connected.js?v=0.9.0";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDFe32AgdruOh_sUn8_O5NGAF2NDItP5jU",
@@ -17,7 +17,7 @@ const firebaseConfig = {
 export function decodeState(state) {
   if (
     !state ||
-    ![4, 6, 7, 8].includes(state.version) ||
+    ![4, 6, 7, 8, 9].includes(state.version) ||
     state.generator !== 1 ||
     !Number.isInteger(state.seed) ||
     typeof state.legacy !== "boolean"
@@ -25,10 +25,12 @@ export function decodeState(state) {
     throw new Error(
       "Esta partida necesita una versión compatible de ARI CRAFT.",
     );
-  if (state.version >= 7 && state.connected?.version !== 2)
+  if (state.version >= 7 && ![2, 3].includes(state.connected?.version))
     throw new Error("Ampliación de la partida incompleta");
-  if (state.version === 8 && !state.village?.match)
+  if (state.version >= 8 && !state.village?.match)
     throw new Error("Faltan los futbolistas guardados");
+  if (state.version === 9 && state.connected?.version !== 3)
+    throw Error("Faltan los escenarios guardados");
   const world = new World({ seed: state.seed, legacy: state.legacy });
   world.restore(state.edits);
   const inventory = new Inventory();
@@ -92,7 +94,14 @@ export function encodeJourney(journey, inventory) {
       journey.village,
       journey.region === "village" ? "village" : "home",
     ),
-    version: journey.village.match ? 8 : connected.version === 2 ? 7 : 6,
+    version:
+      connected.version === 3
+        ? 9
+        : journey.village.match
+          ? 8
+          : connected.version === 2
+            ? 7
+            : 6,
     connected,
   };
 }
@@ -180,12 +189,23 @@ export function prepareCommit(data, entry) {
     };
   }
   if (
-    entry.state.version === 8 &&
+    entry.state.version >= 8 &&
     current &&
     current.state.version < 8 &&
     !data?.backupBefore08
   )
     result.backupBefore08 = {
+      revision: current.revision,
+      commit: current.commit,
+      json: JSON.stringify(current.state),
+    };
+  if (
+    entry.state.version === 9 &&
+    current &&
+    current.state.version < 9 &&
+    !data?.backupBefore09
+  )
+    result.backupBefore09 = {
       revision: current.revision,
       commit: current.commit,
       json: JSON.stringify(current.state),
@@ -237,18 +257,28 @@ export class SaveSession {
     const state = remote ? remote.state : migrateLegacy(data);
     decodeState(state);
     this.backup =
-      state.version < 8
+      state.version < 9
         ? remote || { state }
-        : data?.backupBefore08
-          ? { state: JSON.parse(data.backupBefore08.json) }
-          : data?.backupBefore07
-            ? { state: JSON.parse(data.backupBefore07.json) }
-            : data?.backupBefore06
-              ? { state: JSON.parse(data.backupBefore06.json) }
-              : remote || data?.backupBefore05 || { state };
+        : data?.backupBefore09
+          ? { state: JSON.parse(data.backupBefore09.json) }
+          : data?.backupBefore08
+            ? { state: JSON.parse(data.backupBefore08.json) }
+            : data?.backupBefore07
+              ? { state: JSON.parse(data.backupBefore07.json) }
+              : data?.backupBefore06
+                ? { state: JSON.parse(data.backupBefore06.json) }
+                : remote || data?.backupBefore05 || { state };
     this.revision = remote?.revision || 0;
     const journal = this.readJournal();
     if (journal) {
+      if (
+        journal.state.version < 9 &&
+        !this.storage.getItem(`${this.key}:before09-journal`)
+      )
+        this.storage.setItem(
+          `${this.key}:before09-journal`,
+          JSON.stringify(journal),
+        );
       if (
         journal.state.version < 8 &&
         !this.storage.getItem(`${this.key}:before08-journal`)

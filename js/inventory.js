@@ -1,10 +1,42 @@
-import { BLOCKS } from "./world.js?v=0.8.0";
+import { BLOCKS } from "./world.js?v=0.9.0";
 export const SLOTS = [1, 2, 3, 4, 5, 6, 7, 0, 0];
+export const SHAPES = {
+  cube: { name: "Bloque", cells: [[0, 0]] },
+  beam: {
+    name: "Pieza larga · 2 bloques",
+    cells: [
+      [0, 0],
+      [1, 0],
+    ],
+  },
+  panel: {
+    name: "Panel 2×2 · 4 bloques",
+    cells: [
+      [0, 0],
+      [1, 0],
+      [0, 1],
+      [1, 1],
+    ],
+  },
+  arch: {
+    name: "Arco · 7 bloques",
+    cells: [
+      [0, 0],
+      [0, 1],
+      [0, 2],
+      [1, 2],
+      [2, 2],
+      [2, 1],
+      [2, 0],
+    ],
+  },
+};
 export class Inventory {
   constructor({ creative = true } = {}) {
     this.creative = creative;
     this.counts = Array(BLOCKS.length).fill(0);
     this.selected = 0;
+    this.shape = "cube";
     this.slots = [...SLOTS];
   }
   get type() {
@@ -46,6 +78,7 @@ export class Inventory {
       slots: [...this.slots],
       selected: this.selected,
       creative: this.creative,
+      shape: this.shape,
     };
   }
   restore(data) {
@@ -60,6 +93,12 @@ export class Inventory {
       (data.creative !== undefined && typeof data.creative !== "boolean")
     )
       throw new Error("Inventario guardado no válido");
+    if (
+      data.shape !== undefined &&
+      (typeof data.shape !== "string" || !Object.hasOwn(SHAPES, data.shape))
+    )
+      throw Error("Molde guardado no válido");
+    this.shape = data.shape || "cube";
     // Saves from 0.4/0.4.1 become creative without changing their blocks or counts.
     this.creative = data.creative ?? true;
     if (
@@ -151,26 +190,45 @@ export function mineBlock(world, inventory, hit) {
   return true;
 }
 export function placeBlock(world, inventory, player, hit) {
-  const type = inventory.type;
+  const type = inventory.type,
+    shape = SHAPES[inventory.shape];
   if (
     !hit ||
     !type ||
-    (!inventory.creative && !inventory.counts[type]) ||
-    !hit.normal.some(Boolean)
+    !shape ||
+    !hit.normal.some(Boolean) ||
+    (!inventory.creative && inventory.counts[type] < shape.cells.length)
   )
     return false;
-  const [x, y, z] = [
-    hit.x + hit.normal[0],
-    hit.y + hit.normal[1],
-    hit.z + hit.normal[2],
-  ];
+  const yaw = player.yaw || 0;
+  const axis =
+    Math.abs(Math.cos(yaw)) >= Math.abs(Math.sin(yaw))
+      ? [Math.sign(Math.cos(yaw)), 0]
+      : [0, -Math.sign(Math.sin(yaw))];
+  const cells = shape.cells.map(([side, up]) => [
+    hit.x + hit.normal[0] + side * axis[0],
+    hit.y + hit.normal[1] + up,
+    hit.z + hit.normal[2] + side * axis[1],
+  ]);
   if (
-    world.get(x, y, z) ||
-    player.overlaps(x, y, z) ||
-    !world.set(x, y, z, type)
+    cells.some(
+      ([x, y, z]) =>
+        world.get(x, y, z) ||
+        player.overlaps(x, y, z) ||
+        !world.inside(x, y, z) ||
+        world.protected?.(x, y, z),
+    )
   )
     return false;
-  if (!inventory.creative) inventory.take(type);
+  const applied = [];
+  for (const cell of cells) {
+    if (!world.set(...cell, type)) {
+      for (const placed of applied) world.set(...placed, 0);
+      return false;
+    }
+    applied.push(cell);
+  }
+  if (!inventory.creative) inventory.counts[type] -= cells.length;
   return true;
 }
 

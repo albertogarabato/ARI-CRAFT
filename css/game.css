@@ -1209,3 +1209,49 @@ select {
   background: #17343bdd;
   color: #f7f3e8;
 }
+#destinations {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+  padding: 14px;
+  background: #17343bdd;
+  border: 1px solid #daf09a66;
+  border-radius: 8px;
+}
+#destinations strong,
+#destinations p {
+  grid-column: 1/-1;
+}
+#destinations strong {
+  color: var(--lime);
+  font-size: 13px;
+}
+#destinations p {
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 4px 0 0;
+}
+#destinations button {
+  background: #38554b;
+  border: 1px solid #e9f4d455;
+  color: #f8f5dc;
+  border-radius: 6px;
+  padding: 12px 8px;
+  min-height: 48px;
+  font-size: 12px;
+}
+#destinations #dunesButton {
+  background: #785d37;
+}
+#destinations #bricksButton {
+  background: #345d88;
+}
+#bag label {
+  display: block;
+  margin: 12px 0 6px;
+}
+#shapePicker {
+  width: 100%;
+}

@@ -1,6 +1,16 @@
-# ARI CRAFT · 0.8.0
+# ARI CRAFT · 0.9.0
 
 El mundo de Ari: un sandbox voxel para explorar, recoger y construir. Funciona como web estática en GitHub Pages, sin compilación. Texturas procedurales originales; no utiliza assets de Minecraft.
+
+## Escenarios conectados y moldes (0.9)
+
+Tres regiones nuevas al norte: **Bosque del Roble**, con árboles grandes y cabaña; **Aldea del Sol**, con casas, dunas y pirámide; y **Barrio de Piezas**, con casas de colores, coche, robot y una parcela libre. Son construcciones de bloques editables; el coche y el robot son modelos estáticos. Los caminos permiten recorrerlas andando y volver al mundo anterior sin portales. El menú orienta la cámara y la flecha hacia el destino elegido.
+
+La ampliación añade 12.288 columnas: 38.912 en total, en un mundo finito con forma de L. Conserva las regiones y construcciones anteriores. Cada región nueva admite 2.000 modificaciones.
+
+En **Materiales y taller → Molde para colocar**, elegir bloque (1 unidad), pieza larga (2), panel vertical 2×2 (4) o arco (7). El molde usa el material seleccionado y se orienta según la mirada. En recursos descuenta el total indicado; si alguna parte no cabe, está protegida o faltan materiales, no coloca nada ni descuenta cantidades. Los moldes componen bloques normales; no son piezas de media altura. El modo creativo sigue siendo opcional.
+
+El formato 9 guarda los nuevos escenarios, la posición global y el molde elegido. Al primer guardado de una partida anterior crea `backupBefore09` en la misma transacción, sin sustituir las copias previas. El diario anterior queda en `:before09-journal`. No se ha accedido a la cuenta real de Ari: su copia se creará cuando guarde con esa cuenta.
 
 ## Partido con futbolistas (0.8)
 
@@ -16,7 +26,7 @@ El formato 8 guarda la plantilla y sus tiempos entre golpes. Al primer guardado,
 
 - Entrar con Google recupera la partida de la cuenta. La partida local solo pertenece a ese navegador.
 - WASD / joystick para moverse, ratón / arrastrar a la derecha para mirar. Espacio / Saltar para saltar.
-- Romper recoge bloques en modo **Con recursos**; Colocar consume una unidad. No permite colocar sin existencias ni dentro del jugador.
+- Romper recoge bloques en modo **Con recursos**; Colocar consume las unidades del molde elegido. No permite colocar sin existencias ni dentro del jugador.
 - El selector **Cómo quieres construir** cambia entre recursos y creativo sin borrar edificios ni cantidades. Al actualizar desde versiones anteriores se activa recursos; creativo sigue disponible a elección del jugador.
 - **Materiales y taller** pausa el juego: elegir un hueco (1–9) y un material modifica la barra. **Volver al juego** reanuda.
 - Hay 16 materiales colocables: césped, tierra, piedra, madera, hojas, ladrillo, ámbar, arena, cristal, tablones, adoquín y cinco piezas con salientes (blancas, azules, rojas, amarillas y verdes). Los salientes son decorativos; la colisión sigue siendo la celda cúbica.
@@ -31,7 +41,7 @@ El formato 7 guarda las cuatro regiones nuevas, la posición global, cantidades,
 
 Al primer guardado de una partida anterior, la transacción conserva su estado en `backupBefore07`, sin reemplazar `backupBefore05` ni `backupBefore06`. Los diarios locales anteriores quedan en `:before07-journal`. **Descargar copia anterior a la actualización** exporta el respaldo más reciente. Un fallo de escritura mantiene la partida original remota y la copia local pendiente; no se reinicia el mundo. No se han cambiado reglas ni configuración de Firebase.
 
-Los futbolistas se añaden en 0.8. Los escenarios adicionales y más formas de piezas siguen pendientes.
+Los futbolistas se añaden en 0.8; los escenarios y moldes de 0.9 se describen arriba.
 
 ## Pantalla completa y acceso desde el móvil (0.6.1)
 
@@ -51,7 +61,7 @@ El mundo original y Aldea Girasol forman una escena continua de 160 × 64 column
 - Para jugar al fútbol, acercarse al balón, mirar hacia una portería y pulsar **F** o **Chutar / saludar**. **Balón al centro** lo recupera sin borrar el marcador.
 - El botón de acción móvil permanece a la izquierda, separado de Saltar. El campo sigue reservado para jugar; se puede construir fuera de él.
 
-La unión de la aldea se conserva en 0.7. Los materiales nuevos y el modo con recursos se describen arriba; las aldeas adicionales siguen pendientes.
+La unión de la aldea se conserva en 0.7. Los materiales nuevos y el modo con recursos se describen arriba; los escenarios adicionales se describen en 0.9.
 
 ### Conservación de partidas
 
@@ -121,7 +131,7 @@ Espera a **Guardado en la nube** antes de cambiar de dispositivo. No se depende 
 
 Mundo finito de 64 × 64 columnas y 64 bloques de altura, relieve determinista, árboles, suelo irrompible en la capa 0 y límite de 10.000 modificaciones activas para mantener el documento acotado. La cámara puede quedar por encima del techo de construcción. La aldea ocupa otro tramo del mismo tamaño, unido mediante 32 columnas de terreno con un límite de 512 cambios, con un máximo de 2.000 modificaciones adicionales para acotar el guardado junto con la copia anterior. No hay daño por caída ni multijugador simultáneo.
 
-En móvil aparecen controles táctiles: joystick izquierdo (hasta el borde para correr), cámara al arrastrar a la derecha y botones Saltar, Romper y Colocar. Se recomienda horizontal; el aviso permite continuar en vertical. La interfaz respeta las áreas seguras y la altura visible del navegador. Pantalla completa se solicita cuando el navegador lo admite; en iPhone se explica cómo añadir el juego a la pantalla de inicio. El crafting, los equipos y los retos pertenecen a las siguientes fases.
+En móvil aparecen controles táctiles: joystick izquierdo (hasta el borde para correr), cámara al arrastrar a la derecha y botones Saltar, Romper y Colocar. Se recomienda horizontal; el aviso permite continuar en vertical. La interfaz respeta las áreas seguras y la altura visible del navegador. Pantalla completa se solicita cuando el navegador lo admite; en iPhone se explica cómo añadir el juego a la pantalla de inicio. El taller y los equipos ya están disponibles; los retos siguen pendientes.
 
 ## GitHub Pages
 
