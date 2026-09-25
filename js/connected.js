@@ -1,6 +1,7 @@
-import { World, MIN, MAX, HEIGHT, createWorldView } from "./world.js";
-import { Player } from "./player.js?v=0.6.0";
-import { Village, onField } from "./village.js?v=0.6.0";
+import { createExpansion } from "./expansion.js?v=0.7.0";
+import { World, MIN, MAX, HEIGHT, createWorldView } from "./world.js?v=0.7.0";
+import { Player } from "./player.js?v=0.7.0";
+import { Village, onField } from "./village.js?v=0.7.0";
 
 export const VILLAGE_X = 96;
 export const LINK_X = 48;
@@ -42,10 +43,21 @@ export class ConnectedWorld {
       throw Error("Camino guardado no válido");
     this.link.restore(savedEdits);
   }
+  expand(saved) {
+    this.expansion = createExpansion(this.home, this.village, saved);
+    this.bounds = { minX: -160, maxX: 255, minZ: -32, maxZ: 31 };
+  }
   regionAt(x) {
+    if (x < -32 || x >= 128) return "meadow";
     return x < 32 ? "home" : x < 64 ? "path" : "village";
   }
   local(x) {
+    if (this.expansion) {
+      const region = this.expansion.find(
+        (r) => x >= r.offset - 32 && x <= r.offset + 31,
+      );
+      if (region) return [region.world, x - region.offset];
+    }
     return x < 32
       ? [this.home, x]
       : x < 64
@@ -55,8 +67,8 @@ export class ConnectedWorld {
   inside(x, y, z) {
     return (
       [x, y, z].every(Number.isInteger) &&
-      x >= -32 &&
-      x <= 127 &&
+      x >= this.bounds.minX &&
+      x <= this.bounds.maxX &&
       z >= MIN &&
       z <= MAX &&
       y >= 0 &&
@@ -70,7 +82,12 @@ export class ConnectedWorld {
   }
   solid(x, y, z) {
     return (
-      x < -32 || x > 127 || z < MIN || z > MAX || y < 0 || !!this.get(x, y, z)
+      x < this.bounds.minX ||
+      x > this.bounds.maxX ||
+      z < MIN ||
+      z > MAX ||
+      y < 0 ||
+      !!this.get(x, y, z)
     );
   }
   set(x, y, z, t) {
@@ -92,7 +109,10 @@ export class Journey {
     this.village = village || new Village();
     if (
       saved &&
-      (saved.version !== 1 || !saved.player || !Array.isArray(saved.edits))
+      (![1, 2].includes(saved.version) ||
+        !saved.player ||
+        !Array.isArray(saved.edits) ||
+        (saved.version === 2 && !Array.isArray(saved.expansion)))
     )
       throw Error("El mundo conectado necesita una versión compatible");
     // Add a small entrance only on an untouched strip, never inside a player's building.
@@ -102,6 +122,7 @@ export class Journey {
       this.village.world,
       saved?.edits || [],
     );
+    if (saved?.version === 2) this.world.expand(saved.expansion);
     this.player = new Player(this.world);
     const previous =
       saved?.player ||
@@ -116,8 +137,8 @@ export class Journey {
       (!["x", "y", "z", "yaw", "pitch"].every((k) =>
         Number.isFinite(previous[k]),
       ) ||
-        previous.x < -31.7 ||
-        previous.x > 127.7 ||
+        previous.x < this.world.bounds.minX + 0.3 ||
+        previous.x > this.world.bounds.maxX + 0.7 ||
         previous.z < -31.7 ||
         previous.z > 31.7 ||
         previous.y < 1 ||
@@ -144,7 +165,10 @@ export class Journey {
   snapshot() {
     this.syncAnchors();
     return {
-      version: 1,
+      version: this.world.expansion ? 2 : 1,
+      ...(this.world.expansion
+        ? { expansion: this.world.expansion.map((r) => r.world.serialize()) }
+        : {}),
       player: this.player.snapshot(),
       edits: this.world.link.serialize(),
     };
@@ -158,6 +182,7 @@ export function createConnectedView(THREE, journey, scene) {
     [journey.home.world, 0],
     [journey.world.link, LINK_X],
     [journey.village.world, VILLAGE_X],
+    ...(journey.world.expansion || []).map((r) => [r.world, r.offset]),
   ]) {
     const group = new THREE.Group();
     group.position.x = x;

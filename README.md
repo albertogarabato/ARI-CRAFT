@@ -1,18 +1,27 @@
-# ARI CRAFT · 0.6.1
+# ARI CRAFT · 0.7.0
 
 El mundo de Ari: un sandbox voxel para explorar, recoger y construir. Funciona como web estática en GitHub Pages, sin compilación. Texturas procedurales originales; no utiliza assets de Minecraft.
 
-## Jugar
+## Jugar y construir (0.7)
 
-- **Entrar con Google** abre la partida de la cuenta y la sincroniza en Firestore.
-- **Explorar una partida local** permite probar sin iniciar sesión. Esa partida solo se conserva en este navegador; no se convierte automáticamente en una partida de Google.
-- WASD para caminar, ratón para mirar, Espacio para saltar, Mayús para correr.
-- Mantener clic izquierdo para romper. Clic derecho para colocar.
-- 1–9 o rueda del ratón para seleccionar. Modo creativo: todos los materiales tienen cantidades ilimitadas y colocarlos no consume recursos.
-- Esc o E para pausar. El menú muestra el inventario completo y permite guardar o descargar una copia.
-- Si el navegador no permite capturar el ratón, aparece **Jugar con cámara al arrastrar**: arrastrar con el botón derecho para mirar; clic derecho sin arrastrar para colocar.
+- Entrar con Google recupera la partida de la cuenta. La partida local solo pertenece a ese navegador.
+- WASD / joystick para moverse, ratón / arrastrar a la derecha para mirar. Espacio / Saltar para saltar.
+- Romper recoge bloques en modo **Con recursos**; Colocar consume una unidad. No permite colocar sin existencias ni dentro del jugador.
+- El selector **Cómo quieres construir** cambia entre recursos y creativo sin borrar edificios ni cantidades. Al actualizar desde versiones anteriores se activa recursos; creativo sigue disponible a elección del jugador.
+- **Materiales y taller** pausa el juego: elegir un hueco (1–9) y un material modifica la barra. **Volver al juego** reanuda.
+- Hay 16 materiales colocables: césped, tierra, piedra, madera, hojas, ladrillo, ámbar, arena, cristal, tablones, adoquín y cinco piezas con salientes (blancas, azules, rojas, amarillas y verdes). Los salientes son decorativos; la colisión sigue siendo la celda cúbica.
+- En recursos, las recetas muestran ingredientes y resultado, y solo se habilitan si hay existencias y espacio. Ejemplos: una madera → cuatro tablones; una piedra → un adoquín; dos adoquines y una hoja → cuatro piezas de color. Son recetas originales de ARI CRAFT.
+- La arena se recoge también en las nuevas praderas; el cristal permite ver a través de su ventana central.
 
-El modo creativo ofrece césped, tierra, piedra, madera, hojas, ladrillo y ámbar desde el principio, señalados con ∞. No hace falta recoger materiales. Las partidas antiguas conservan sus bloques y cantidades históricas y pasan a creativo al cargarse. Los dos últimos espacios quedan reservados.
+## Praderas de construcción y conservación (0.7)
+
+La superficie pasa de 160 × 64 a **416 × 64 columnas** (26.624 frente a 10.240). Se añaden cuatro regiones de 64 × 64, dos a cada lado, con áreas niveladas, arena y una línea de árboles. La zona original y la aldea no se regeneran ni se desplazan. **Mirar hacia las praderas** apunta hacia el oeste: continuar y seguir la flecha hasta llegar andando.
+
+El formato 7 guarda las cuatro regiones nuevas, la posición global, cantidades, modo y barra personalizable. Los identificadores antiguos de materiales permanecen iguales; los nuevos se añaden tras la roca base. Cada región nueva admite 1.500 modificaciones, además de los límites existentes; revertir un bloque a su estado original libera espacio.
+
+Al primer guardado de una partida anterior, la transacción conserva su estado en `backupBefore07`, sin reemplazar `backupBefore05` ni `backupBefore06`. Los diarios locales anteriores quedan en `:before07-journal`. **Descargar copia anterior a la actualización** exporta el respaldo más reciente. Un fallo de escritura mantiene la partida original remota y la copia local pendiente; no se reinicia el mundo. No se han cambiado reglas ni configuración de Firebase.
+
+Los futbolistas y las aldeas adicionales siguen pendientes de la siguiente fase. El campo actual, animales, vecinos y marcador se conservan.
 
 ## Pantalla completa y acceso desde el móvil (0.6.1)
 
@@ -32,7 +41,7 @@ El mundo original y Aldea Girasol forman una escena continua de 160 × 64 column
 - Para jugar al fútbol, acercarse al balón, mirar hacia una portería y pulsar **F** o **Chutar / saludar**. **Balón al centro** lo recupera sin borrar el marcador.
 - El botón de acción móvil permanece a la izquierda, separado de Saltar. El campo sigue reservado para jugar; se puede construir fuera de él.
 
-Esta entrega corresponde a la primera fase acordada: unir la aldea existente. Mantiene el modo creativo actual. Las aldeas adicionales, materiales nuevos y recursos limitados son las fases siguientes; todavía no están implementadas.
+La unión de la aldea se conserva en 0.7. Los materiales nuevos y el modo con recursos se describen arriba; las aldeas adicionales siguen pendientes.
 
 ### Conservación de partidas
 
@@ -42,7 +51,7 @@ El formato de guardado pasa de 4 a **6**, para que una versión antigua no abra 
 
 Antes de la primera escritura del formato 6, la misma transacción añade **`backupBefore06`** con la revisión, identificador y el estado anterior serializado como JSON. No sobrescribe esa copia ni `backupBefore05`. El diario local anterior queda además en `<clave>:before06-journal`. La copia real de una cuenta se crea al guardar con esa cuenta, no durante la publicación del código.
 
-**Descargar copia anterior a la unión** permite conservar el estado anterior fuera del navegador. Los archivos se recuperan mediante soporte; todavía no hay importador automático. Si la lectura, conversión, copia o escritura falla, el original remoto no se sustituye por una partida nueva. Los conflictos entre dispositivos siguen comprobando la revisión.
+**Descargar copia anterior a la actualización** permite conservar el estado anterior fuera del navegador. Los archivos se recuperan mediante soporte; todavía no hay importador automático. Si la lectura, conversión, copia o escritura falla, el original remoto no se sustituye por una partida nueva. Los conflictos entre dispositivos siguen comprobando la revisión.
 
 ## Desarrollo local
 

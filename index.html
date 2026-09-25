@@ -20,7 +20,7 @@
       content="El mundo de Ari. Explora, imagina y construye tu propio mundo de bloques."
     />
     <title>ARI CRAFT · El mundo de Ari</title>
-    <link rel="stylesheet" href="./css/game.css?v=0.6.1" />
+    <link rel="stylesheet" href="./css/game.css?v=0.7.0" />
     <script type="importmap">
       {
         "imports": {
@@ -72,15 +72,16 @@
         <div id="touchTip">Mueve a la izquierda · mira a la derecha</div>
       </div>
       <div id="objective">
-        <span class="eyebrow">CONSTRUYE SIN LÍMITES</span
+        <span class="eyebrow">EXPLORA · RECOGE · CONSTRUYE</span
         ><span id="mission"
-          >Elige un material de arriba y pulsa Colocar. ¡Son ilimitados!</span
+          >Recoge bloques y abre Materiales y taller para fabricar.</span
         >
       </div>
       <div id="villageHud" hidden>
         <span id="score" role="status">Azul 0 · 0 Coral</span
         ><button id="actionButton">⚽ Chutar / saludar <small>F</small></button>
       </div>
+      <button id="materialsButton">▦ Materiales y taller</button>
       <div id="crosshair" aria-hidden="true">+</div>
       <div id="targetLabel"></div>
       <progress
@@ -102,20 +103,21 @@
     <section id="menu" aria-labelledby="menuTitle">
       <div class="menu-card">
         <div class="eyebrow">
-          <span class="status-dot"></span> MODO CREATIVO · BLOQUES ILIMITADOS
+          <span class="status-dot"></span
+          ><span id="modeLabel">EXPLORA · RECOGE · CONSTRUYE</span>
         </div>
-        <h1 id="menuTitle">ARI<span>CRAFT</span><sup>0.6.1</sup></h1>
-        <p class="intro">Un camino, muchas aventuras.</p>
+        <h1 id="menuTitle">ARI<span>CRAFT</span><sup>0.7.0</sup></h1>
+        <p class="intro">Más mundo. Más posibilidades.</p>
         <p class="description">
-          Tu mundo y la aldea, unidos para explorar.<br />Nuevos amigos y un
-          campo para jugar.
+          Grandes praderas para tus construcciones.<br />Materiales nuevos,
+          piezas de colores y tu aldea de siempre.
         </p>
         <div class="features">
           <span>01 / EXPLORA</span><span>02 / IMAGINA</span
           ><span>03 / CONSTRUYE</span>
         </div>
         <p id="greeting" hidden></p>
-        <button id="loginButton" class="primary">
+        <button id="loginButton" class="primary" disabled>
           Entrar con Google <span>↗</span>
         </button>
         <button id="playButton" class="primary" hidden>
@@ -130,7 +132,7 @@
         <button id="fallbackButton" class="secondary" hidden>
           Jugar con cámara al arrastrar
         </button>
-        <button id="demoButton" class="secondary">
+        <button id="demoButton" class="secondary" disabled>
           Explorar una partida local
         </button>
         <aside id="installCard">
@@ -143,14 +145,24 @@
             Añadir a pantalla de inicio
           </button>
         </aside>
+        <section id="modeSettings" hidden>
+          <label for="gameMode">Cómo quieres construir</label>
+          <select id="gameMode">
+            <option value="resources">Con recursos · recoger y fabricar</option>
+            <option value="creative">Creativo · bloques ilimitados</option>
+          </select>
+          <p id="modeHint"></p>
+        </section>
         <div class="menu-actions">
           <button id="fullscreenButton">⛶ Pantalla completa</button
-          ><button id="touchModeButton">Activar controles táctiles</button
+          ><button id="touchModeButton" disabled>
+            Activar controles táctiles</button
+          ><button id="meadowButton" hidden>Mirar hacia las praderas</button
           ><button id="homeButton" hidden>Mirar hacia mi mundo</button
           ><button id="saveButton" hidden>Guardar ahora</button
           ><button id="logoutButton" hidden>Cambiar de cuenta</button
           ><button id="backupButton" hidden>
-            Descargar copia anterior a la unión</button
+            Descargar copia anterior a la actualización</button
           ><button id="resetBallButton" hidden>Balón al centro</button
           ><button id="exportButton" hidden>Descargar copia local</button
           ><button id="reloadButton" hidden>
@@ -163,8 +175,31 @@
           local se guarda solo en este navegador.
         </p>
         <details id="bag" hidden>
-          <summary>Materiales ilimitados</summary>
+          <summary>Materiales y taller · 16 materiales</summary>
+          <p>
+            Elige el hueco de la barra que quieres cambiar y después un
+            material.
+          </p>
+          <label for="slotPicker">Hueco de la barra</label>
+          <select id="slotPicker">
+            <option value="0">1</option>
+            <option value="1">2</option>
+            <option value="2">3</option>
+            <option value="3">4</option>
+            <option value="4">5</option>
+            <option value="5">6</option>
+            <option value="6">7</option>
+            <option value="7">8</option>
+            <option value="8">9</option>
+          </select>
           <div id="bagList" class="controls-grid"></div>
+          <h3>Taller de construcción</h3>
+          <p>
+            Estas recetas son propias de ARI CRAFT. Recoge primero los
+            ingredientes indicados.
+          </p>
+          <div id="craftList" class="controls-grid"></div>
+          <button id="bagBackButton" class="primary">Volver al juego →</button>
         </details>
         <details id="help">
           <summary>Cómo jugar</summary>
@@ -178,9 +213,10 @@
             ><span><kbd>Esc / E</kbd> Pausa e inventario</span>
           </div>
           <p>
-            Elige un material de la barra: tienes bloques ilimitados. Con el
-            botón derecho construyes y manteniendo el izquierdo rompes. Acércate
-            a menos de 6 bloques.
+            Elige un material de la barra. En modo con recursos, romper recoge y
+            colocar consume; el taller crea nuevos materiales. En creativo son
+            ilimitados. Con el botón derecho construyes y manteniendo el
+            izquierdo rompes. Acércate a menos de 6 bloques.
           </p>
         </details>
         <div id="touchNotice" hidden>
@@ -189,8 +225,9 @@
           </p>
           <p>
             Izquierda: mueve el joystick. Derecha: arrastra para mirar. Apunta
-            con la cruz, elige un material arriba y toca <b>Colocar</b>. No se
-            gastan. Mantén <b>Romper</b> para quitar bloques.
+            con la cruz, elige un material arriba y toca <b>Colocar</b>. Se
+            gastan en modo con recursos. Mantén <b>Romper</b> para quitar
+            bloques.
           </p>
         </div>
         <footer>
@@ -271,11 +308,11 @@
       </p>
       <button id="closeInstallHelp" class="primary">Entendido</button>
     </dialog>
-    <script type="module" src="./js/app-mode.js?v=0.6.1"></script>
+    <script type="module" src="./js/app-mode.js?v=0.7.0"></script>
     <div id="toast" role="status" hidden></div>
     <noscript>Activa JavaScript para jugar a ARI CRAFT.</noscript>
     <script type="module">
-      import("./js/game.js?v=0.6.1").catch((error) => {
+      import("./js/game.js?v=0.7.0").catch((error) => {
         console.error(error);
         document.querySelector("#menuStatus").textContent =
           "No se pudo iniciar el juego. Revisa la conexión y recarga la página.";

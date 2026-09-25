@@ -1101,3 +1101,102 @@ body {
     margin-left: 0;
   }
 }
+
+#modeSettings {
+  grid-column: 1 / -1;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #daf09a66;
+  border-radius: 8px;
+  background: #17343b;
+}
+#modeSettings label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+#modeHint {
+  font-size: 12px;
+  line-height: 1.6;
+  margin-bottom: 0;
+  color: #d5e5ca;
+}
+select {
+  font: inherit;
+  color: #f7f3e8;
+  background: #28494b;
+  border: 1px solid #daf09a88;
+  padding: 10px;
+  border-radius: 6px;
+  max-width: 100%;
+}
+#gameMode {
+  width: 100%;
+}
+#bag {
+  scroll-margin-top: 24px;
+}
+.material-choice,
+.recipe {
+  font: inherit;
+  min-height: 48px;
+  border: 1px solid #edf4db55;
+  border-radius: 6px;
+  padding: 10px;
+  text-align: left;
+  background: #234348;
+  color: #f7f3e8;
+  line-height: 1.5;
+}
+.material-choice {
+  border-left: 8px solid var(--block);
+}
+.material-choice[aria-pressed="true"] {
+  outline: 2px solid var(--lime);
+}
+.recipe:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+#materialsButton {
+  position: absolute;
+  pointer-events: auto;
+  left: 30px;
+  top: 190px;
+  min-height: 44px;
+  padding: 10px 14px;
+  color: #17343b;
+  background: var(--lime);
+  border: 0;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.paused #materialsButton {
+  display: none;
+}
+.touch #materialsButton {
+  left: max(12px, env(safe-area-inset-left));
+  top: calc(140px + env(safe-area-inset-top));
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .touch #materialsButton {
+    top: calc(62px + env(safe-area-inset-top));
+    max-width: 150px;
+    font-size: 11px;
+  }
+}
+#bagBackButton {
+  margin-top: 18px;
+  text-align: center;
+}
+/* Touch controls can also be enabled on tablets wider than the phone breakpoint. */
+.touch .brand {
+  margin-left: 48px;
+}
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  .touch .brand {
+    margin-left: 0;
+  }
+}

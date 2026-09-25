@@ -1,10 +1,10 @@
-import { World, SEED } from "./world.js";
-import { Inventory } from "./inventory.js?v=0.6.0";
-import { Player } from "./player.js?v=0.6.0";
-import { Village } from "./village.js?v=0.6.0";
+import { World, SEED } from "./world.js?v=0.7.0";
+import { Inventory } from "./inventory.js?v=0.7.0";
+import { Player } from "./player.js?v=0.7.0";
+import { Village } from "./village.js?v=0.7.0";
 
 // Public web-app configuration preserved verbatim from the working prototype.
-import { Journey } from "./connected.js?v=0.6.0";
+import { Journey } from "./connected.js?v=0.7.0";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDFe32AgdruOh_sUn8_O5NGAF2NDItP5jU",
@@ -17,7 +17,7 @@ const firebaseConfig = {
 export function decodeState(state) {
   if (
     !state ||
-    ![4, 6].includes(state.version) ||
+    ![4, 6, 7].includes(state.version) ||
     state.generator !== 1 ||
     !Number.isInteger(state.seed) ||
     typeof state.legacy !== "boolean"
@@ -25,6 +25,8 @@ export function decodeState(state) {
     throw new Error(
       "Esta partida necesita una versión compatible de ARI CRAFT.",
     );
+  if (state.version === 7 && state.connected?.version !== 2)
+    throw new Error("Ampliación de la partida incompleta");
   const world = new World({ seed: state.seed, legacy: state.legacy });
   world.restore(state.edits);
   const inventory = new Inventory();
@@ -45,10 +47,10 @@ export function decodeState(state) {
     throw new Error("Aldea guardada no válida");
   const village =
     state.village === undefined ? null : new Village(state.village);
-  if (state.version === 6 && (!state.connected || !village))
+  if (state.version >= 6 && (!state.connected || !village))
     throw new Error("Faltan datos del mundo conectado");
   const journey =
-    state.version === 6
+    state.version >= 6
       ? new Journey({ world, player }, village, state.location, state.connected)
       : null;
   return {
@@ -88,7 +90,7 @@ export function encodeJourney(journey, inventory) {
       journey.village,
       journey.region === "village" ? "village" : "home",
     ),
-    version: 6,
+    version: connected.version === 2 ? 7 : 6,
     connected,
   };
 }
@@ -152,12 +154,24 @@ export function prepareCommit(data, entry) {
   if (!data?.backupBefore05 && current && current.state.version === 4)
     result.backupBefore05 = current;
   if (
-    entry.state.version === 6 &&
+    entry.state.version >= 6 &&
     current &&
     current.state.version === 4 &&
     !data?.backupBefore06
   ) {
     result.backupBefore06 = {
+      revision: current.revision,
+      commit: current.commit,
+      json: JSON.stringify(current.state),
+    };
+  }
+  if (
+    entry.state.version === 7 &&
+    current &&
+    current.state.version < 7 &&
+    !data?.backupBefore07
+  ) {
+    result.backupBefore07 = {
       revision: current.revision,
       commit: current.commit,
       json: JSON.stringify(current.state),
@@ -209,12 +223,25 @@ export class SaveSession {
       throw new Error("Revisión de partida no válida");
     const state = remote ? remote.state : migrateLegacy(data);
     decodeState(state);
-    this.backup = data?.backupBefore06
-      ? { state: JSON.parse(data.backupBefore06.json) }
-      : remote || data?.backupBefore05 || { state };
+    this.backup =
+      state.version < 7
+        ? remote || { state }
+        : data?.backupBefore07
+          ? { state: JSON.parse(data.backupBefore07.json) }
+          : data?.backupBefore06
+            ? { state: JSON.parse(data.backupBefore06.json) }
+            : remote || data?.backupBefore05 || { state };
     this.revision = remote?.revision || 0;
     const journal = this.readJournal();
     if (journal) {
+      if (
+        journal.state.version < 7 &&
+        !this.storage.getItem(`${this.key}:before07-journal`)
+      )
+        this.storage.setItem(
+          `${this.key}:before07-journal`,
+          JSON.stringify(journal),
+        );
       if (
         journal.state.version === 4 &&
         !this.storage.getItem(`${this.key}:before06-journal`)

@@ -14,6 +14,15 @@ export const BLOCKS = [
   { name: "Ladrillo", color: "#c37b61", time: 0.8 },
   { name: "Ámbar", color: "#eac26b", time: 0.8 },
   { name: "Roca base", color: "#404c54", time: Infinity },
+  { name: "Arena", color: "#e3cf93", time: 0.4 },
+  { name: "Cristal", color: "#b6e5ee", time: 0.35, glass: true },
+  { name: "Tablones", color: "#bd945f", time: 0.65 },
+  { name: "Adoquín", color: "#6d7b85", time: 1 },
+  { name: "Pieza blanca", color: "#eef0e9", time: 0.6, stud: true },
+  { name: "Pieza azul", color: "#428bd6", time: 0.6, stud: true },
+  { name: "Pieza roja", color: "#e86862", time: 0.6, stud: true },
+  { name: "Pieza amarilla", color: "#f2ce4c", time: 0.6, stud: true },
+  { name: "Pieza verde", color: "#68b875", time: 0.6, stud: true },
 ];
 const key = (x, y, z) => `${x},${y},${z}`;
 export function hash(x, z, seed = SEED) {
@@ -114,7 +123,8 @@ export class World {
       y === 0 ||
       !Number.isInteger(type) ||
       type < 0 ||
-      type > 7
+      type === 8 ||
+      type >= BLOCKS.length
     )
       return false;
     const k = key(x, y, z),
@@ -165,7 +175,8 @@ export class World {
         y === 0 ||
         !Number.isInteger(t) ||
         t < 0 ||
-        t > 7
+        t === 8 ||
+        t >= BLOCKS.length
       )
         throw new Error("Bloque guardado no válido");
     }
@@ -215,7 +226,7 @@ export class World {
 // Only exposed faces are drawn; edits rebuild at most the neighboring chunks.
 export function createWorldView(THREE, world, scene) {
   const canvas = document.createElement("canvas");
-  canvas.width = 16 * 9;
+  canvas.width = 16 * BLOCKS.length;
   canvas.height = 16;
   const ctx = canvas.getContext("2d");
   BLOCKS.forEach((block, tile) => {
@@ -239,6 +250,21 @@ export function createWorldView(THREE, world, scene) {
         }
       }
   });
+  BLOCKS.forEach((block, tile) => {
+    if (block.glass) {
+      ctx.clearRect(tile * 16 + 2, 2, 12, 12);
+      ctx.fillStyle = "#eaffff";
+      ctx.fillRect(tile * 16 + 3, 3, 1, 5);
+      ctx.fillRect(tile * 16 + 4, 3, 4, 1);
+    }
+    if (tile === 11 || tile === 12) {
+      ctx.fillStyle = "#31433588";
+      for (let y = 0; y < 16; y += 4) ctx.fillRect(tile * 16, y, 16, 1);
+      if (tile === 12)
+        for (let y = 0; y < 16; y += 4)
+          ctx.fillRect(tile * 16 + (y % 8 ? 3 : 10), y, 1, 4);
+    }
+  });
   const texture = new THREE.CanvasTexture(canvas);
   texture.magFilter = THREE.NearestFilter;
   texture.minFilter = THREE.NearestFilter;
@@ -246,6 +272,8 @@ export function createWorldView(THREE, world, scene) {
   const material = new THREE.MeshLambertMaterial({
     map: texture,
     vertexColors: true,
+    alphaTest: 0.5,
+    side: THREE.DoubleSide,
   });
   const meshes = new Map();
   const faces = [
@@ -327,8 +355,41 @@ export function createWorldView(THREE, world, scene) {
         for (let y = 0; y < HEIGHT; y++) {
           const type = world.get(x, y, z);
           if (!type) continue;
+          if (BLOCKS[type].stud && !world.get(x, y + 1, z)) {
+            // Original four-stud construction piece. Studs are decorative.
+            for (const sx of [0.22, 0.62])
+              for (const sz of [0.22, 0.62]) {
+                for (const f of faces) {
+                  if (f.n[1] === -1) continue;
+                  const start = p.length / 3;
+                  for (const v of f.v) {
+                    p.push(
+                      x + sx + v[0] * 0.16,
+                      y + 1 + v[1] * 0.08,
+                      z + sz + v[2] * 0.16,
+                    );
+                    n.push(...f.n);
+                    color.push(f.light, f.light, f.light);
+                    uv.push((type + 0.5) / BLOCKS.length, 0.5);
+                  }
+                  indices.push(
+                    start,
+                    start + 1,
+                    start + 2,
+                    start,
+                    start + 2,
+                    start + 3,
+                  );
+                }
+              }
+          }
           for (const face of faces) {
-            if (world.get(x + face.n[0], y + face.n[1], z + face.n[2]))
+            const neighbor = world.get(
+              x + face.n[0],
+              y + face.n[1],
+              z + face.n[2],
+            );
+            if (neighbor && (!BLOCKS[neighbor].glass || BLOCKS[type].glass))
               continue;
             const start = p.length / 3,
               tile = type === 1 && face.n[1] === -1 ? 2 : type;
@@ -339,7 +400,7 @@ export function createWorldView(THREE, world, scene) {
               n.push(...face.n);
               color.push(shade, shade, shade);
               uv.push(
-                (tile + ([0, 1, 1, 0][i] ? 0.97 : 0.03)) / 9,
+                (tile + ([0, 1, 1, 0][i] ? 0.97 : 0.03)) / BLOCKS.length,
                 [0, 0, 1, 1][i] ? 0.97 : 0.03,
               );
             });

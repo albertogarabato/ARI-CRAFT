@@ -1,9 +1,14 @@
-import { enterFullscreen } from "./app-mode.js?v=0.6.1";
+import { enterFullscreen } from "./app-mode.js?v=0.7.0";
 import * as THREE from "three";
-import { bindTouchControls } from "./touch.js";
-import { World, BLOCKS, createWorldView } from "./world.js";
-import { Player } from "./player.js?v=0.6.0";
-import { Inventory, mineBlock, placeBlock } from "./inventory.js?v=0.6.0";
+import { bindTouchControls } from "./touch.js?v=0.7.0";
+import { World, BLOCKS, createWorldView } from "./world.js?v=0.7.0";
+import { Player } from "./player.js?v=0.7.0";
+import {
+  Inventory,
+  RECIPES,
+  mineBlock,
+  placeBlock,
+} from "./inventory.js?v=0.7.0";
 import {
   connectFirebase,
   SaveSession,
@@ -12,14 +17,14 @@ import {
   encodeJourney,
   decodeState,
   prepareCommit,
-} from "./firebase.js?v=0.6.0";
+} from "./firebase.js?v=0.7.0";
 
 import {
   Journey,
   VILLAGE_X,
   createConnectedView,
-} from "./connected.js?v=0.6.0";
-import { createVillageView } from "./village-view.js?v=0.6.0";
+} from "./connected.js?v=0.7.0";
+import { createVillageView } from "./village-view.js?v=0.7.0";
 let journey = null,
   navigationTarget = "village",
   navigationTime = 0;
@@ -50,7 +55,7 @@ const sun = new THREE.DirectionalLight("#fff0cd", 2.1);
 sun.position.set(-30, 55, 25);
 scene.add(sun);
 let world = new World(),
-  inventory = new Inventory(),
+  inventory = new Inventory({ creative: false }),
   player = new Player(world),
   view = createWorldView(THREE, world, scene);
 view.update();
@@ -174,16 +179,77 @@ function renderInventory() {
     changed();
   });
   $("bagList").replaceChildren();
-  BLOCKS.slice(1, 8).forEach((block, index) => {
-    const row = document.createElement("span");
-    row.textContent = `${block.name} · ${inventory.creative ? "∞" : inventory.counts[index + 1]}`;
+  BLOCKS.forEach((block, type) => {
+    if (!type || type === 8) return;
+    const row = document.createElement("button");
+    row.className = "material-choice";
+    row.style.setProperty("--block", block.color);
+    row.textContent = `${block.name} · ${inventory.creative ? "∞" : inventory.counts[type]}`;
+    row.setAttribute("aria-pressed", String(type === inventory.type));
+    row.onclick = () => {
+      inventory.equip(type);
+      renderInventory();
+      changed();
+    };
     $("bagList").append(row);
   });
+  $("slotPicker").value = String(inventory.selected);
+  $("gameMode").value = inventory.creative ? "creative" : "resources";
+  $("modeLabel").textContent = inventory.creative
+    ? "MODO CREATIVO · BLOQUES ILIMITADOS"
+    : "MODO CONSTRUCCIÓN · RECOGE Y FABRICA";
+  $("modeHint").textContent = inventory.creative
+    ? "Todos los materiales son ilimitados. Elegir un bloque lo pone en el hueco seleccionado."
+    : "Mantén Romper para recoger. Colocar gasta una unidad. Fabrica nuevos materiales en el taller; tus edificios se conservan al cambiar de modo.";
+  $("craftList").replaceChildren();
+  for (const recipe of RECIPES) {
+    const button = document.createElement("button");
+    button.className = "recipe";
+    const cost = recipe.cost
+      .map(([t, n]) => `${n} ${BLOCKS[t].name}`)
+      .join(" + ");
+    button.textContent = inventory.creative
+      ? `Elegir ${BLOCKS[recipe.type].name}`
+      : `Fabricar ${recipe.quantity} ${BLOCKS[recipe.type].name} · ${cost}`;
+    button.disabled =
+      !inventory.creative &&
+      (recipe.cost.some(([t, n]) => inventory.counts[t] < n) ||
+        inventory.counts[recipe.type] + recipe.quantity > 99999);
+    button.onclick = () => {
+      if (inventory.craft(recipe)) {
+        renderInventory();
+        changed();
+        toast(`Preparado: ${BLOCKS[recipe.type].name}`);
+      }
+    };
+    $("craftList").append(button);
+  }
   const type = inventory.type;
   $("selectedLabel").textContent = type
     ? `${BLOCKS[type].name} · ${inventory.creative ? "∞ · ilimitados" : inventory.counts[type]}`
     : "Espacio vacío";
 }
+$("gameMode").onchange = () => {
+  if (!ready) return;
+  inventory.creative = $("gameMode").value === "creative";
+  renderInventory();
+  changed();
+  toast(
+    inventory.creative
+      ? "Creativo: construye sin límites."
+      : "Recursos: recoge bloques y fabrícalos en el taller.",
+  );
+};
+$("slotPicker").onchange = () => {
+  inventory.select(Number($("slotPicker").value));
+  renderInventory();
+  changed();
+};
+$("materialsButton").onclick = () => {
+  pause();
+  $("bag").open = true;
+  $("bag").scrollIntoView({ block: "start" });
+};
 function clearInput() {
   touchInput.reset();
   rightDrag = null;
@@ -309,6 +375,8 @@ function install(state) {
       next.village,
       next.location,
     );
+  if (!journey.world.expansion) journey.world.expand();
+  if (state.version < 7) inventory.creative = false;
   world = journey.world;
   player = journey.player;
   home = journey.home;
@@ -325,6 +393,8 @@ function install(state) {
   dirty = false;
   document.body.classList.add("paused");
   $("bag").hidden = false;
+  $("modeSettings").hidden = false;
+  $("meadowButton").hidden = false;
   $("logoutButton").textContent =
     mode === "local" ? "Volver al inicio" : "Cambiar de cuenta";
   $("hud").hidden = false;
@@ -350,7 +420,7 @@ function install(state) {
       : "Tu mundo se guarda automáticamente. Espera a «Guardado en la nube» antes de continuar en otro dispositivo.";
   status(mode === "local" ? "Partida local" : "Mundo cargado");
   // Persist migration/new state only after a successful remote read and validation.
-  if (!session.revision || session.pending || state.version !== 6) changed();
+  if (!session.revision || session.pending || state.version !== 7) changed();
 }
 async function loadSession(nextSession, nextMode) {
   const token = ++loadToken;
@@ -410,18 +480,22 @@ function updateTravelUI() {
     ? "ALDEA GIRASOL"
     : region === "path"
       ? "CAMINO DE GIRASOL"
-      : "EL MUNDO DE ARI";
+      : region === "meadow"
+        ? "PRADERAS PARA CONSTRUIR"
+        : "EL MUNDO DE ARI";
   if (visiting) updateScore();
   updateNavigation();
 }
 function updateNavigation() {
   if (!journey) return;
   const target =
-    navigationTarget === "home"
-      ? { x: 0.5, z: 3.5, name: "Mi mundo" }
-      : navigationTarget === "field"
-        ? { x: VILLAGE_X + 15, z: 6, name: "Campo de Ari" }
-        : { x: VILLAGE_X - 12, z: -6, name: "Aldea Girasol" };
+    navigationTarget === "meadow"
+      ? { x: -64, z: -6, name: "Praderas de construcción" }
+      : navigationTarget === "home"
+        ? { x: 0.5, z: 3.5, name: "Mi mundo" }
+        : navigationTarget === "field"
+          ? { x: VILLAGE_X + 15, z: 6, name: "Campo de Ari" }
+          : { x: VILLAGE_X - 12, z: -6, name: "Aldea Girasol" };
   const dx = target.x - player.position.x,
     dz = target.z - player.position.z;
   const bearing = Math.atan2(-dx, -dz);
@@ -449,9 +523,11 @@ function faceDestination(destination) {
   if (!ready) return;
   navigationTarget = destination;
   const x =
-      destination === "home"
-        ? 0.5
-        : VILLAGE_X + (destination === "field" ? 15 : -12),
+      destination === "meadow"
+        ? -64
+        : destination === "home"
+          ? 0.5
+          : VILLAGE_X + (destination === "field" ? 15 : -12),
     z = destination === "home" ? 3.5 : destination === "field" ? 6 : -6;
   player.yaw = Math.atan2(player.position.x - x, player.position.z - z);
   player.pitch = -0.12;
@@ -461,6 +537,7 @@ function faceDestination(destination) {
   $("menuStatus").textContent =
     "Ya estás mirando hacia tu destino. Pulsa Continuar y camina siguiendo la indicación. El camino conecta las dos zonas.";
 }
+$("meadowButton").onclick = () => faceDestination("meadow");
 $("travelButton").onclick = () => faceDestination("village");
 $("footballButton").onclick = () => faceDestination("field");
 $("homeButton").onclick = () => faceDestination("home");
@@ -496,7 +573,7 @@ $("backupButton").onclick = () => {
   if (session?.backup)
     downloadCopy(
       JSON.stringify({
-        backupBefore06: session.backup,
+        backupBeforeUpdate: session.backup,
         state: session.backup.state,
       }),
     );
@@ -570,6 +647,7 @@ $("fallbackButton").onclick = () => {
   );
 };
 $("playButton").onclick = play;
+$("bagBackButton").onclick = play;
 $("pauseButton").onclick = pause;
 $("saveButton").onclick = () => {
   dirty = true;
@@ -591,7 +669,7 @@ function downloadCopy(raw) {
     url = URL.createObjectURL(blob),
     a = document.createElement("a");
   a.href = url;
-  a.download = `ari-craft-06-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `ari-craft-07-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -690,6 +768,16 @@ function target() {
   return world.raycast(camera.position, direction);
 }
 function placeSelected() {
+  if (
+    !inventory.creative &&
+    inventory.type &&
+    !inventory.counts[inventory.type]
+  ) {
+    toast(
+      "No tienes ese material. Mantén Romper para recogerlo o abre Materiales y taller.",
+    );
+    return;
+  }
   const hit = target();
   if (!hit) {
     toast(
@@ -895,6 +983,8 @@ let lastYaw = 0,
   lastPitch = 0;
 renderInventory();
 requestAnimationFrame(frame);
+$("demoButton").disabled = false;
+$("touchModeButton").disabled = false;
 void initializeAuth();
 function resizeGame() {
   const width = document.documentElement.clientWidth,
