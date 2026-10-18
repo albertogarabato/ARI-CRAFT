@@ -1,4 +1,4 @@
-import { World, hash } from "./world.js?v=0.9.0";
+import { World, hash } from "./world.js?v=0.10.0";
 export const PLACES = [
   { id: "forest", name: "Bosque del Roble", x: 0, z: 64, sign: [0, 14, -8] },
   { id: "dunes", name: "Aldea del Sol", x: 64, z: 64, sign: [0, 14, -8] },
