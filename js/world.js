@@ -23,6 +23,9 @@ export const BLOCKS = [
   { name: "Pieza roja", color: "#e86862", time: 0.6, stud: true },
   { name: "Pieza amarilla", color: "#f2ce4c", time: 0.6, stud: true },
   { name: "Pieza verde", color: "#68b875", time: 0.6, stud: true },
+  { name: "Antorcha", color: "#ffc45e", time: 0.2, torch: true },
+  { name: "Cristal azul", color: "#4a99dc", time: 0.35, glass: true },
+  { name: "Diana de entrenamiento", color: "#d7ac77", time: 0.6 },
 ];
 const key = (x, y, z) => `${x},${y},${z}`;
 export function hash(x, z, seed = SEED) {
@@ -114,7 +117,12 @@ export class World {
   solid(x, y, z) {
     // Invisible boundary prevents falling out of this finite first world.
     return (
-      x < MIN || x > MAX || z < MIN || z > MAX || y < 0 || !!this.get(x, y, z)
+      x < MIN ||
+      x > MAX ||
+      z < MIN ||
+      z > MAX ||
+      y < 0 ||
+      (!!this.get(x, y, z) && this.get(x, y, z) !== 18)
     );
   }
   set(x, y, z, type) {
@@ -257,6 +265,19 @@ export function createWorldView(THREE, world, scene) {
       ctx.fillRect(tile * 16 + 3, 3, 1, 5);
       ctx.fillRect(tile * 16 + 4, 3, 4, 1);
     }
+    if (tile === 20) {
+      for (const [radius, paint] of [
+        [7, "#e8dcc0"],
+        [5, "#d26651"],
+        [3, "#f4e3b4"],
+        [1, "#b95547"],
+      ]) {
+        ctx.fillStyle = paint;
+        ctx.beginPath();
+        ctx.arc(tile * 16 + 8, 8, radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
     if (tile === 11 || tile === 12) {
       ctx.fillStyle = "#31433588";
       for (let y = 0; y < 16; y += 4) ctx.fillRect(tile * 16, y, 16, 1);
@@ -276,6 +297,10 @@ export function createWorldView(THREE, world, scene) {
     side: THREE.DoubleSide,
   });
   const meshes = new Map();
+  const torchGeometry = new THREE.BoxGeometry(1, 1, 1);
+  const stemMaterial = new THREE.MeshLambertMaterial({ color: "#875633" });
+  const flameMaterial = new THREE.MeshBasicMaterial({ color: "#ffc04d" });
+  const coreMaterial = new THREE.MeshBasicMaterial({ color: "#fff1a0" });
   const faces = [
     {
       n: [1, 0, 0],
@@ -350,11 +375,16 @@ export function createWorldView(THREE, world, scene) {
       uv = [],
       color = [],
       indices = [];
+    const torches = [];
     for (let x = MIN + cx * 16; x < MIN + (cx + 1) * 16; x++)
       for (let z = MIN + cz * 16; z < MIN + (cz + 1) * 16; z++)
         for (let y = 0; y < HEIGHT; y++) {
           const type = world.get(x, y, z);
           if (!type) continue;
+          if (type === 18) {
+            torches.push([x, y, z]);
+            continue;
+          }
           if (BLOCKS[type].stud && !world.get(x, y + 1, z)) {
             // Original four-stud construction piece. Studs are decorative.
             for (const sx of [0.22, 0.62])
@@ -389,7 +419,11 @@ export function createWorldView(THREE, world, scene) {
               y + face.n[1],
               z + face.n[2],
             );
-            if (neighbor && (!BLOCKS[neighbor].glass || BLOCKS[type].glass))
+            if (
+              neighbor &&
+              neighbor !== 18 &&
+              (!BLOCKS[neighbor].glass || BLOCKS[type].glass)
+            )
               continue;
             const start = p.length / 3,
               tile = type === 1 && face.n[1] === -1 ? 2 : type;
@@ -422,6 +456,18 @@ export function createWorldView(THREE, world, scene) {
     geometry.setIndex(indices);
     geometry.computeBoundingSphere();
     const mesh = new THREE.Mesh(geometry, material);
+    for (const [x, y, z] of torches) {
+      for (const [mat, scale, dy] of [
+        [stemMaterial, [0.12, 0.55, 0.12], 0.275],
+        [flameMaterial, [0.22, 0.25, 0.22], 0.65],
+        [coreMaterial, [0.12, 0.18, 0.12], 0.68],
+      ]) {
+        const part = new THREE.Mesh(torchGeometry, mat);
+        part.scale.set(...scale);
+        part.position.set(x + 0.5, y + dy, z + 0.5);
+        mesh.add(part);
+      }
+    }
     meshes.set(k, mesh);
     scene.add(mesh);
   }
@@ -435,6 +481,10 @@ export function createWorldView(THREE, world, scene) {
         scene.remove(mesh);
         mesh.geometry.dispose();
       }
+      torchGeometry.dispose();
+      stemMaterial.dispose();
+      flameMaterial.dispose();
+      coreMaterial.dispose();
       material.dispose();
       texture.dispose();
     },

@@ -1,16 +1,20 @@
-import { PLACES, createPlacesView } from "./places.js?v=0.9.0";
-import { enterFullscreen } from "./app-mode.js?v=0.9.0";
+import { createEquipmentView } from "./equipment-view.js?v=0.10.0";
+import { PLACES, createPlacesView } from "./places.js?v=0.10.0";
+import { enterFullscreen } from "./app-mode.js?v=0.10.0";
 import * as THREE from "three";
-import { bindTouchControls } from "./touch.js?v=0.9.0";
-import { World, BLOCKS, createWorldView } from "./world.js?v=0.9.0";
-import { Player } from "./player.js?v=0.9.0";
+import { bindTouchControls } from "./touch.js?v=0.10.0";
+import { World, BLOCKS, createWorldView } from "./world.js?v=0.10.0";
+import { Player } from "./player.js?v=0.10.0";
 import {
   Inventory,
   RECIPES,
   SHAPES,
+  TOOLS,
+  miningDuration,
+  practiceStrike,
   mineBlock,
   placeBlock,
-} from "./inventory.js?v=0.9.0";
+} from "./inventory.js?v=0.10.0";
 import {
   connectFirebase,
   SaveSession,
@@ -19,14 +23,14 @@ import {
   encodeJourney,
   decodeState,
   prepareCommit,
-} from "./firebase.js?v=0.9.0";
+} from "./firebase.js?v=0.10.0";
 
 import {
   Journey,
   VILLAGE_X,
   createConnectedView,
-} from "./connected.js?v=0.9.0";
-import { createVillageView } from "./village-view.js?v=0.9.0";
+} from "./connected.js?v=0.10.0";
+import { createVillageView } from "./village-view.js?v=0.10.0";
 let journey = null,
   navigationTarget = "village",
   navigationTime = 0;
@@ -53,10 +57,12 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
 renderer.setSize(innerWidth, innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 $("game").append(renderer.domElement);
-scene.add(new THREE.HemisphereLight("#fff4d9", "#657b73", 2));
+const skyLight = new THREE.HemisphereLight("#fff4d9", "#657b73", 2);
+scene.add(skyLight);
 const sun = new THREE.DirectionalLight("#fff0cd", 2.1);
 sun.position.set(-30, 55, 25);
 scene.add(sun);
+const equipmentView = createEquipmentView(THREE, scene, camera);
 let world = new World(),
   inventory = new Inventory({ creative: false }),
   player = new Player(world),
@@ -196,6 +202,37 @@ function renderInventory() {
     };
     $("bagList").append(row);
   });
+  $("toolList").replaceChildren();
+  for (const [id, tool] of Object.entries(TOOLS)) {
+    const owned =
+      id === "hand" || inventory.creative || inventory.tools.includes(id);
+    const button = document.createElement("button");
+    button.className = "recipe";
+    button.textContent = `${tool.icon} ${owned ? "Equipar" : "Fabricar"} ${tool.name}${owned ? "" : " · " + tool.cost.map(([t, n]) => `${n} ${BLOCKS[t].name}`).join(" + ")}`;
+    button.setAttribute("aria-pressed", String(inventory.activeTool === id));
+    button.disabled =
+      !owned && tool.cost.some(([t, n]) => inventory.counts[t] < n);
+    button.onclick = () => {
+      if (owned ? inventory.equipTool(id) : inventory.craftTool(id)) {
+        clearInput();
+        renderInventory();
+        changed();
+      }
+    };
+    $("toolList").append(button);
+  }
+  $("toolStatus").textContent =
+    `${TOOLS[inventory.activeTool].icon} ${TOOLS[inventory.activeTool].name} · Entrenamiento: ${inventory.trainingHits}`;
+  $("touchMine").innerHTML =
+    inventory.activeTool === "sword"
+      ? "<b>⚔</b>Golpear<small>MANTÉN</small>"
+      : "<b>⛏</b>Romper<small>MANTÉN</small>";
+  $("touchMine").setAttribute(
+    "aria-label",
+    inventory.activeTool === "sword"
+      ? "Mantén para golpear la diana"
+      : "Mantén para romper un bloque",
+  );
   $("slotPicker").value = String(inventory.selected);
   $("shapePicker").value = inventory.shape;
   $("gameMode").value = inventory.creative ? "creative" : "resources";
@@ -245,6 +282,17 @@ $("gameMode").onchange = () => {
       ? "Creativo: construye sin límites."
       : "Recursos: recoge bloques y fabrícalos en el taller.",
   );
+};
+let evening = false;
+$("lightingButton").onclick = () => {
+  evening = !evening;
+  skyLight.intensity = evening ? 0.22 : 2;
+  sun.intensity = evening ? 0.12 : 2.1;
+  scene.background.set(evening ? "#263449" : "#b5d8dc");
+  scene.fog.color.copy(scene.background);
+  $("lightingButton").textContent = evening
+    ? "☀ Volver al día"
+    : "☾ Ver al atardecer";
 };
 $("shapePicker").onchange = () => {
   inventory.shape = $("shapePicker").value;
@@ -439,7 +487,7 @@ function install(state) {
   if (
     !session.revision ||
     session.pending ||
-    state.version !== 9 ||
+    state.version !== 10 ||
     Array.isArray(state.connected?.expansion?.[0])
   )
     changed();
@@ -524,7 +572,8 @@ function navigationPoint(destination) {
   const p = player.position,
     final = destinations[destination];
   if (PLACES.some((r) => r.id === destination)) {
-    if (p.z < 32) return { x: final.x, z: 34, name: `Camino norte → ${final.name}` };
+    if (p.z < 32)
+      return { x: final.x, z: 34, name: `Camino norte → ${final.name}` };
     if (p.z < 61)
       return { x: final.x, z: 64, name: `Camino central → ${final.name}` };
   } else if (p.z > 33) {
@@ -709,7 +758,7 @@ function downloadCopy(raw) {
     url = URL.createObjectURL(blob),
     a = document.createElement("a");
   a.href = url;
-  a.download = `ari-craft-09-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `ari-craft-010-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -808,6 +857,10 @@ function target() {
   return world.raycast(camera.position, direction);
 }
 function placeSelected() {
+  if (inventory.type === 18 && inventory.shape !== "cube") {
+    toast("Para poner antorchas, elige el molde Bloque en el taller.");
+    return;
+  }
   if (
     !inventory.creative &&
     inventory.type &&
@@ -843,7 +896,9 @@ function placeSelected() {
     toast(
       !inventory.type
         ? "Elige un material de la barra de arriba."
-        : "No puedes construir aquí: deja espacio para moverte.",
+        : inventory.type === 18
+          ? "Pon la antorcha sobre un bloque, con espacio libre encima."
+          : "No puedes construir aquí: deja espacio para moverte.",
     );
 }
 renderer.domElement.addEventListener("pointerdown", (e) => {
@@ -931,6 +986,33 @@ function updateMining(dt) {
     $("breakProgress").hidden = true;
     return;
   }
+  if (inventory.activeTool === "sword") {
+    if (hit.type !== 20 || hit.distance > 3) {
+      mineTime = 0;
+      mineKey = "";
+      $("breakProgress").hidden = true;
+      $("targetLabel").textContent =
+        "Espada: apunta a una diana a menos de 3 bloques. Usa Mano para desmontar.";
+      return;
+    }
+    const key = `practice:${hit.x},${hit.y},${hit.z}`;
+    if (mineKey !== key) {
+      mineKey = key;
+      mineTime = 0;
+    }
+    mineTime += dt;
+    $("breakProgress").hidden = false;
+    $("breakProgress").value = mineTime / 0.45;
+    if (mineTime >= 0.45 && practiceStrike(world, inventory, hit)) {
+      mineTime = 0;
+      renderInventory();
+      changed();
+      toast(`¡Acierto! ${inventory.trainingHits} golpes a la diana.`);
+      $("mission").textContent =
+        `¡Buen golpe! Entrenamiento: ${inventory.trainingHits} aciertos.`;
+    }
+    return;
+  }
   const key = `${hit.x},${hit.y},${hit.z}`;
   if (key !== mineKey) {
     mineKey = key;
@@ -938,9 +1020,8 @@ function updateMining(dt) {
   }
   mineTime += dt;
   $("breakProgress").hidden = false;
-  $("breakProgress").value =
-    mineTime / (inventory.creative ? 0.2 : BLOCKS[hit.type].time);
-  if (mineTime >= (inventory.creative ? 0.2 : BLOCKS[hit.type].time)) {
+  $("breakProgress").value = mineTime / miningDuration(inventory, hit.type);
+  if (mineTime >= miningDuration(inventory, hit.type)) {
     if (mineBlock(world, inventory, hit)) {
       renderInventory();
       changed();
@@ -1024,6 +1105,14 @@ function frame(now) {
     updateMining(dt);
   }
   view.update();
+  equipmentView.update(
+    dt,
+    world,
+    player,
+    inventory.activeTool,
+    playing,
+    mining,
+  );
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }

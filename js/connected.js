@@ -1,8 +1,8 @@
-import { createPlaces } from "./places.js?v=0.9.0";
-import { createExpansion } from "./expansion.js?v=0.9.0";
-import { World, MIN, MAX, HEIGHT, createWorldView } from "./world.js?v=0.9.0";
-import { Player } from "./player.js?v=0.9.0";
-import { Village, onField } from "./village.js?v=0.9.0";
+import { createPlaces } from "./places.js?v=0.10.0";
+import { createExpansion } from "./expansion.js?v=0.10.0";
+import { World, MIN, MAX, HEIGHT, createWorldView } from "./world.js?v=0.10.0";
+import { Player } from "./player.js?v=0.10.0";
+import { Village, onField } from "./village.js?v=0.10.0";
 
 export const VILLAGE_X = 96;
 export const LINK_X = 48;
@@ -103,7 +103,7 @@ export class ConnectedWorld {
       z > this.bounds.maxZ ||
       (z > MAX && (!this.places || x < -32 || x > 159)) ||
       y < 0 ||
-      !!this.get(x, y, z)
+      (!!this.get(x, y, z) && this.get(x, y, z) !== 18)
     );
   }
   set(x, y, z, t) {

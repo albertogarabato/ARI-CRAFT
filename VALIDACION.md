@@ -1,3 +1,20 @@
+# Validación de ARI CRAFT 0.10.0
+
+78 pruebas pasan: las 71 anteriores y siete casos nuevos de herramientas, recetas, antorchas, entrenamiento, migración y copia previa.
+
+- Inventarios antiguos de 18 tipos recuperan cantidades, barra y molde; los nuevos tipos empiezan vacíos.
+- Fabricación de herramientas sin gasto parcial ni cobro repetido; velocidades por material y cambio creativo/recursos comprobados.
+- Recetas de cristal, cristal azul, antorcha y diana; colocar y romper conserva cantidades.
+- Antorchas requieren apoyo al colocar, usan molde individual y no bloquean al jugador. Campo protegido.
+- Espada suma únicamente ante una diana cercana y conserva el bloque.
+- Guardado y recarga de herramientas, aciertos, objetos en todas las regiones, construcciones antiguas y marcador.
+- Copia anterior a 0.10 atómica e inmutable; escrituras obsoletas rechazadas y sin listas directamente anidadas.
+- Navegador: luz real al atardecer, herramientas visibles, dos golpes en diana y guardado local. Sin errores de consola.
+
+La cuenta real de Ari no se ha abierto durante las pruebas. Rendimiento en móviles físicos y primer guardado real en Firebase pendientes de comprobar con el usuario.
+
+## Historial
+
 # Validación de ARI CRAFT 0.9.0
 
 71 pruebas pasan: las 62 anteriores y nueve casos de escenarios, recorridos, puertas, moldes y conservación.

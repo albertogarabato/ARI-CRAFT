@@ -1,4 +1,60 @@
-import { BLOCKS } from "./world.js?v=0.9.0";
+import { BLOCKS } from "./world.js?v=0.10.0";
+export const TOOLS = {
+  hand: { name: "Mano", icon: "✋", cost: [] },
+  pickaxe: {
+    name: "Pico",
+    icon: "⛏",
+    cost: [
+      [11, 2],
+      [3, 3],
+    ],
+    fast: [3, 6, 7, 12],
+  },
+  axe: {
+    name: "Hacha",
+    icon: "🪓",
+    cost: [
+      [11, 2],
+      [3, 2],
+    ],
+    fast: [4, 11],
+  },
+  shovel: {
+    name: "Pala",
+    icon: "♧",
+    cost: [
+      [11, 2],
+      [3, 1],
+    ],
+    fast: [1, 2, 9],
+  },
+  sword: {
+    name: "Espada de práctica",
+    icon: "⚔",
+    cost: [
+      [11, 1],
+      [3, 2],
+    ],
+    fast: [5],
+  },
+};
+export function miningDuration(inventory, type) {
+  if (inventory.creative) return 0.2;
+  const tool = inventory.activeTool;
+  return BLOCKS[type].time / (TOOLS[tool].fast?.includes(type) ? 3 : 1);
+}
+export function practiceStrike(world, inventory, hit) {
+  if (
+    inventory.activeTool !== "sword" ||
+    !hit ||
+    hit.distance > 3 ||
+    world.get(hit.x, hit.y, hit.z) !== 20 ||
+    world.protected?.(hit.x, hit.y, hit.z)
+  )
+    return false;
+  inventory.trainingHits = Math.min(999999, inventory.trainingHits + 1);
+  return true;
+}
 export const SLOTS = [1, 2, 3, 4, 5, 6, 7, 0, 0];
 export const SHAPES = {
   cube: { name: "Bloque", cells: [[0, 0]] },
@@ -37,7 +93,32 @@ export class Inventory {
     this.counts = Array(BLOCKS.length).fill(0);
     this.selected = 0;
     this.shape = "cube";
+    this.tool = "hand";
+    this.tools = [];
+    this.trainingHits = 0;
     this.slots = [...SLOTS];
+  }
+  get activeTool() {
+    return this.creative || this.tools.includes(this.tool) ? this.tool : "hand";
+  }
+  equipTool(id) {
+    if (
+      !Object.hasOwn(TOOLS, id) ||
+      (id !== "hand" && !this.creative && !this.tools.includes(id))
+    )
+      return false;
+    this.tool = id;
+    return true;
+  }
+  craftTool(id) {
+    if (!Object.hasOwn(TOOLS, id) || id === "hand") return false;
+    if (!this.creative && !this.tools.includes(id)) {
+      if (TOOLS[id].cost.some(([t, n]) => this.counts[t] < n)) return false;
+      for (const [t, n] of TOOLS[id].cost) this.counts[t] -= n;
+      this.tools.push(id);
+    }
+    this.tool = id;
+    return true;
   }
   get type() {
     return this.slots[this.selected];
@@ -79,13 +160,16 @@ export class Inventory {
       selected: this.selected,
       creative: this.creative,
       shape: this.shape,
+      tool: this.tool,
+      tools: [...this.tools],
+      trainingHits: this.trainingHits,
     };
   }
   restore(data) {
     if (
       !data ||
       !Array.isArray(data.counts) ||
-      ![8, BLOCKS.length].includes(data.counts.length) ||
+      ![8, 18, BLOCKS.length].includes(data.counts.length) ||
       !data.counts.every((n) => Number.isInteger(n) && n >= 0 && n <= 99999) ||
       !Number.isInteger(data.selected) ||
       data.selected < 0 ||
@@ -98,6 +182,26 @@ export class Inventory {
       (typeof data.shape !== "string" || !Object.hasOwn(SHAPES, data.shape))
     )
       throw Error("Molde guardado no válido");
+    if (
+      (data.tool !== undefined &&
+        (typeof data.tool !== "string" || !Object.hasOwn(TOOLS, data.tool))) ||
+      (data.tools !== undefined &&
+        (!Array.isArray(data.tools) ||
+          data.tools.length > 4 ||
+          new Set(data.tools).size !== data.tools.length ||
+          data.tools.some(
+            (t) =>
+              typeof t !== "string" || t === "hand" || !Object.hasOwn(TOOLS, t),
+          ))) ||
+      (data.trainingHits !== undefined &&
+        (!Number.isInteger(data.trainingHits) ||
+          data.trainingHits < 0 ||
+          data.trainingHits > 999999))
+    )
+      throw Error("Herramientas guardadas no válidas");
+    this.tool = data.tool ?? "hand";
+    this.tools = [...(data.tools ?? [])];
+    this.trainingHits = data.trainingHits ?? 0;
     this.shape = data.shape || "cube";
     // Saves from 0.4/0.4.1 become creative without changing their blocks or counts.
     this.creative = data.creative ?? true;
@@ -127,6 +231,7 @@ export class Inventory {
       type >= BLOCKS.length
     )
       return false;
+    if (type === 18) this.shape = "cube";
     this.slots[this.selected] = type;
     return true;
   }
@@ -211,6 +316,14 @@ export function placeBlock(world, inventory, player, hit) {
     hit.z + hit.normal[2] + side * axis[1],
   ]);
   if (
+    type === 18 &&
+    (inventory.shape !== "cube" ||
+      cells.some(
+        ([x, y, z]) => !world.get(x, y - 1, z) || world.get(x, y - 1, z) === 18,
+      ))
+  )
+    return false;
+  if (
     cells.some(
       ([x, y, z]) =>
         world.get(x, y, z) ||
@@ -233,6 +346,30 @@ export function placeBlock(world, inventory, player, hit) {
 }
 
 export const RECIPES = [
+  {
+    type: 18,
+    quantity: 4,
+    cost: [
+      [11, 1],
+      [7, 1],
+    ],
+  },
+  {
+    type: 19,
+    quantity: 2,
+    cost: [
+      [10, 2],
+      [5, 1],
+    ],
+  },
+  {
+    type: 20,
+    quantity: 1,
+    cost: [
+      [11, 4],
+      [6, 1],
+    ],
+  },
   { type: 11, quantity: 4, cost: [[4, 1]] },
   { type: 12, quantity: 1, cost: [[3, 1]] },
   { type: 9, quantity: 2, cost: [[2, 2]] },

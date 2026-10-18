@@ -1,6 +1,16 @@
-# ARI CRAFT · 0.9.0
+# ARI CRAFT · 0.10.0
 
 El mundo de Ari: un sandbox voxel para explorar, recoger y construir. Funciona como web estática en GitHub Pages, sin compilación. Texturas procedurales originales; no utiliza assets de Minecraft.
+
+## Cristal, iluminación y herramientas (0.10)
+
+El taller incluye cristal normal y azul, antorchas y una diana de entrenamiento. El cristal normal ya existía; el azul es nuevo. Las antorchas se fabrican de cuatro en cuatro con un tablón y un ámbar. Se colocan individualmente sobre un bloque, no bloquean el paso y conservan su posición al guardar. La iluminación utiliza como máximo las cuatro antorchas más cercanas; las demás mantienen su llama visible. El botón **Ver al atardecer** permite apreciar la luz (ajuste visual de la sesión, sin ciclo automático).
+
+En **Materiales, herramientas y taller → Herramienta en la mano** se fabrican y equipan pico, hacha, pala y espada de práctica. Las tres primeras reducen a un tercio el tiempo de rotura del material correspondiente: piedra/ladrillo/ámbar/adoquín, madera/tablones y césped/tierra/arena. Las herramientas no tienen desgaste y su fabricación se paga una sola vez. En creativo se pueden elegir sin receta; al volver a recursos solo funcionan las herramientas fabricadas. La herramienta es independiente del material seleccionado para construir.
+
+La espada sirve para practicar: colocar una diana, acercarse a menos de tres bloques y mantener **Golpear** (clic izquierdo en ordenador). Cada golpe suma un acierto sin destruirla ni consumir bloques. Para desmontar la diana, equipar Mano u otra herramienta. No hay enemigos ni combate contra habitantes. Las formas especiales y el giro de piezas comentados anteriormente siguen pendientes; esta entrega se centra en iluminación y herramientas.
+
+El formato 10 añade herramientas y aciertos al inventario y amplía sus cantidades de 18 a 21 tipos sin cambiar los identificadores anteriores. Al primer guardado de una partida antigua crea `backupBefore10` atómicamente y conserva las copias previas. Los diarios anteriores se mantienen en `:before10-journal`. La publicación no accede a la cuenta de Ari: el respaldo de su partida se crea cuando guarde con esa cuenta.
 
 ## Escenarios conectados y moldes (0.9)
 

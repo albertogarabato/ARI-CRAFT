@@ -33,7 +33,7 @@ test("new destinations preserve old terrain, builds, quantities, selection, foot
     ].map((w) => [w, Array.from(w.base), w.serialize()]);
   j.world.addPlaces();
   const now = encodeJourney(j, bag);
-  assert.equal(now.version, 9);
+  assert.equal(now.version, 10);
   assert.equal(now.connected.version, 3);
   for (const [w, base, edits] of terrain) {
     assert.deepEqual(Array.from(w.base), base);
